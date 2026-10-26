@@ -1,0 +1,1145 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Confiabilidad – Equipos Envase</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Tablero de confiabilidad 52-12-4 para equipos de envase: L5, L7, LE7, L8 y L9.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap">
+<style>
+/* Layout: plant-floor control board — a signage header with line plates, a filter rail, then tabbed panels on a cool steel ground. */
+:root{
+  --bg:#eceeed; --surface:#fbfbfa; --surface-2:#e4e7e6; --ink:#121516; --ink-2:#4a5153; --muted:#767d7f;
+  --line:#d6dad9; --grid:#e3e6e5; --accent:#9c520a; --accent-soft:#f2e2cd; --accent-ink:#ffffff;
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100; --s5:#e87ba4; --s6:#008300; --s7:#6250d6; --s8:#e34948;
+  --good:#0ca30c; --warning:#fab219; --serious:#ec835a; --critical:#d03b3b; --good-ink:#006300;
+  --seq-lo:#eef4fc; --seq-1:#b7d3f6; --seq-2:#6da7ec; --seq-3:#2a78d6; --seq-4:#1c5cab; --seq-hi:#0d366b;
+  --shadow:0 1px 2px rgba(18,21,22,.06), 0 4px 16px rgba(18,21,22,.05);
+  --f-display:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --r:10px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0d0f10; --surface:#16191a; --surface-2:#1f2324; --ink:#eef0ef; --ink-2:#b9bfbf; --muted:#8a9192;
+    --line:#2a2f30; --grid:#24292a; --accent:#e6a04f; --accent-soft:#36281a; --accent-ink:#1a1206;
+    --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181; --s6:#008300; --s7:#9085e9; --s8:#e66767;
+    --good-ink:#0ca30c;
+    --seq-lo:#1a2230; --seq-1:#184f95; --seq-2:#256abf; --seq-3:#3987e5; --seq-4:#86b6ef; --seq-hi:#cde2fb;
+    --shadow:0 1px 2px rgba(0,0,0,.4);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0d0f10; --surface:#16191a; --surface-2:#1f2324; --ink:#eef0ef; --ink-2:#b9bfbf; --muted:#8a9192;
+  --line:#2a2f30; --grid:#24292a; --accent:#e6a04f; --accent-soft:#36281a; --accent-ink:#1a1206;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181; --s6:#008300; --s7:#9085e9; --s8:#e66767;
+  --good-ink:#0ca30c;
+  --seq-lo:#1a2230; --seq-1:#184f95; --seq-2:#256abf; --seq-3:#3987e5; --seq-4:#86b6ef; --seq-hi:#cde2fb;
+  --shadow:0 1px 2px rgba(0,0,0,.4);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--f-body);font-variant-numeric:tabular-nums}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+.wrap{max-width:1440px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0;letter-spacing:.01em}
+button,select,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+/* header */
+.top{padding-block:22px 14px;display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px 28px}
+.eyebrow{font-family:var(--f-display);font-weight:600;font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+.brand h1{font-size:clamp(28px,4.2vw,44px);font-weight:700;text-transform:uppercase;line-height:1;letter-spacing:.02em}
+.brand h1 span{color:var(--muted);font-weight:500}
+.plates{display:flex;flex-wrap:wrap;gap:8px}
+.plate{display:flex;align-items:center;gap:8px;border:1.5px solid var(--line);background:var(--surface);border-radius:8px;padding:6px 12px 6px 10px;cursor:pointer;min-height:40px;transition:border-color .15s,background .15s}
+.plate b{font-family:var(--f-display);font-weight:700;font-size:20px;letter-spacing:.04em;line-height:1}
+.plate small{font-size:12px;color:var(--muted);line-height:1.1}
+.plate .dot{width:9px;height:9px;border-radius:50%;background:var(--line);flex:none}
+.plate.loaded .dot{background:var(--good)}
+.plate.active{border-color:var(--accent);background:var(--accent-soft)}
+.plate:hover{border-color:var(--ink-2)}
+.plate.empty{opacity:.7}
+
+/* tabs + toolbar */
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
+.tabs{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;padding-top:4px}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:none;border:0;background:none;padding:10px 14px 11px;font-family:var(--f-display);font-weight:600;font-size:16px;letter-spacing:.03em;color:var(--ink-2);cursor:pointer;border-bottom:3px solid transparent}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+.tab:hover{color:var(--ink)}
+.filters{display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px;padding-block:12px}
+.filters label{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);font-weight:500}
+select,input[type=number],input[type=search]{background:var(--surface);border:1px solid var(--line);border-radius:7px;padding:6px 10px;min-height:36px;max-width:100%}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--surface)}
+.seg button{border:0;background:none;padding:6px 12px;min-height:34px;cursor:pointer;font-weight:600;color:var(--ink-2)}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--surface)}
+.ctx{font-size:13px;color:var(--muted);margin-left:auto}
+.ctx b{color:var(--ink);font-weight:600}
+
+main{padding-block:20px 40px}
+.view{display:grid;gap:16px}
+.view[hidden]{display:none!important}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px 18px 14px;min-width:0;box-shadow:var(--shadow)}
+.panel h3{font-size:19px;font-weight:600;display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px}
+.panel h3 .hint{font-family:var(--f-body);font-size:13px;font-weight:400;color:var(--muted)}
+.panel .sub{margin:2px 0 8px;font-size:13px;color:var(--muted);max-width:75ch}
+.g2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.g3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.g-wide{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:16px}
+@media (max-width:980px){.g2,.g3,.g-wide{grid-template-columns:minmax(0,1fr)}}
+.chart{width:100%;height:300px}
+.chart.tall{height:420px}
+.chart.short{height:220px}
+
+/* tiles */
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.tile .k{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.tile .v{font-family:var(--f-display);font-size:34px;font-weight:600;line-height:1.05}
+.tile .d{font-size:13px;color:var(--ink-2)}
+.up-bad{color:var(--critical)} .down-good{color:var(--good-ink)} .neutral{color:var(--muted)}
+
+/* triad */
+.triad{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border:1px solid var(--line);border-radius:var(--r);overflow:hidden;background:var(--surface)}
+.triad>div{padding:14px 16px;display:flex;flex-direction:column;gap:4px;border-left:1px solid var(--line);position:relative}
+.triad>div:first-child{border-left:0}
+.triad .w{font-family:var(--f-display);font-weight:700;font-size:15px;letter-spacing:.12em;color:var(--muted)}
+.triad .p{font-family:var(--f-display);font-size:clamp(30px,4vw,44px);font-weight:600;line-height:1}
+.triad .bar-meta{height:6px;border-radius:3px;background:var(--surface-2);position:relative;margin-top:6px;overflow:hidden}
+.triad .bar-meta i{position:absolute;inset:0 auto 0 0;border-radius:3px}
+.triad .h{font-size:13px;color:var(--ink-2)}
+@media (max-width:560px){.triad{grid-template-columns:1fr}.triad>div{border-left:0;border-top:1px solid var(--line)}.triad>div:first-child{border-top:0}}
+
+/* status pill */
+.pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:2px 10px 2px 8px;font-size:12.5px;font-weight:600;white-space:nowrap;border:1px solid var(--line);background:var(--surface)}
+.pill i{width:8px;height:8px;border-radius:50%;flex:none;font-style:normal}
+.pill.good i{background:var(--good)} .pill.warning i{background:var(--warning)} .pill.serious i{background:var(--serious)} .pill.critical i{background:var(--critical)}
+
+/* insights */
+.insights{list-style:none;margin:6px 0 0;padding:0;display:grid;gap:8px}
+.insights li{display:grid;grid-template-columns:4px minmax(0,1fr);gap:12px;align-items:stretch;padding:8px 0}
+.insights li+li{border-top:1px solid var(--grid)}
+.insights li>i{border-radius:2px;background:var(--muted)}
+.insights li.good>i{background:var(--good)} .insights li.warning>i{background:var(--warning)} .insights li.serious>i{background:var(--serious)} .insights li.critical>i{background:var(--critical)} .insights li.info>i{background:var(--s1)}
+.insights p{margin:0;font-size:14.5px}
+.insights p b{font-weight:600}
+.insights .tag{display:block;font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:1px}
+
+/* tables */
+.tablebox{overflow-x:auto;margin-top:8px;border:1px solid var(--line);border-radius:8px}
+table{border-collapse:collapse;width:100%;font-size:13.5px;min-width:760px}
+th,td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--grid);vertical-align:middle}
+th{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600;background:var(--surface-2);position:sticky;top:0;white-space:nowrap}
+th.sortable{cursor:pointer;user-select:none}
+th.sortable:hover{color:var(--ink)}
+th[aria-sort="descending"]::after{content:" ▾"} th[aria-sort="ascending"]::after{content:" ▴"}
+td.n,th.n{text-align:right}
+tbody tr:hover{background:var(--surface-2)}
+tbody tr.click{cursor:pointer}
+td .eqn{font-weight:600;display:block;line-height:1.25}
+td .eqt{font-size:12px;color:var(--muted)}
+td.over{color:var(--critical);font-weight:600}
+.tablebox.scroll{max-height:520px;overflow:auto}
+.tools{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;margin-top:10px}
+.chipf{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:4px 12px;font-size:13px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;min-height:32px}
+.chipf[aria-pressed="true"]{border-color:var(--ink);background:var(--ink);color:var(--surface)}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:7px 14px;font-weight:600;cursor:pointer;min-height:36px;display:inline-flex;align-items:center;gap:8px}
+.btn:hover{border-color:var(--ink-2)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.ghost{background:none}
+.spark{display:block}
+
+/* upload */
+.slots{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px}
+.slot{background:var(--surface);border:1.5px dashed var(--line);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:10px;min-height:210px;position:relative;transition:border-color .15s,background .15s}
+.slot.drag{border-color:var(--accent);background:var(--accent-soft)}
+.slot.loaded{border-style:solid}
+.slot .sl{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.slot .sl b{font-family:var(--f-display);font-size:30px;font-weight:700;letter-spacing:.04em;line-height:1}
+.slot .meta{font-size:13px;color:var(--ink-2);display:grid;gap:2px}
+.slot .meta span{color:var(--muted)}
+.slot .act{margin-top:auto;display:flex;flex-wrap:wrap;gap:8px}
+.prog{height:6px;border-radius:3px;background:var(--surface-2);overflow:hidden}
+.prog i{display:block;height:100%;width:0;background:var(--accent);transition:width .2s}
+.err{color:var(--critical);font-size:13px}
+.drop-all{border:1.5px dashed var(--line);border-radius:var(--r);padding:22px;text-align:center;background:var(--surface);transition:border-color .15s,background .15s}
+.drop-all.drag{border-color:var(--accent);background:var(--accent-soft)}
+.drop-all p{margin:4px 0 12px;color:var(--ink-2)}
+.empty-state{padding:36px 18px;text-align:center;color:var(--ink-2)}
+.empty-state h3{font-size:24px;margin-bottom:6px;color:var(--ink)}
+.howto{display:grid;gap:6px;margin:0;padding-left:20px;color:var(--ink-2);font-size:14px;max-width:80ch}
+.note{font-size:13px;color:var(--muted);max-width:90ch}
+.legend-inline{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12.5px;color:var(--ink-2);margin-top:4px}
+.legend-inline span{display:inline-flex;align-items:center;gap:6px}
+.legend-inline i{width:10px;height:10px;border-radius:2px;display:inline-block}
+.proj-ctl{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;margin:6px 0 4px;font-size:14px}
+.proj-ans{font-size:15px;margin:8px 0 0;padding:10px 12px;border-radius:8px;background:var(--surface-2)}
+.proj-ans b{font-weight:600}
+footer{padding-block:18px 32px;border-top:1px solid var(--line);font-size:12.5px;color:var(--muted)}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--surface);padding:10px 16px;border-radius:8px;font-size:14px;z-index:20;box-shadow:var(--shadow)}
+@media (max-width:700px){.bar{position:static}.ctx{margin-left:0}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <div class="eyebrow">Envasado · Indicador 52-12-4 · Meta &lt; 0,5 %</div>
+      <h1>Confiabilidad <span>–</span> Equipos Envase</h1>
+    </div>
+    <nav class="plates" id="plates" aria-label="Líneas"></nav>
+  </header>
+</div>
+<div class="bar">
+  <div class="wrap">
+    <div class="tabs" role="tablist" id="tabs">
+      <button class="tab" role="tab" data-v="resumen">Resumen</button>
+      <button class="tab" role="tab" data-v="equipos">Equipos 52-12-4</button>
+      <button class="tab" role="tab" data-v="equipo">Detalle de equipo</button>
+      <button class="tab" role="tab" data-v="linea">Tiempos de línea</button>
+      <button class="tab" role="tab" data-v="paradas">Paradas</button>
+      <button class="tab" role="tab" data-v="comparar">Comparar líneas</button>
+      <button class="tab" role="tab" data-v="cargar">Cargar archivos</button>
+    </div>
+    <div class="filters" id="filters">
+      <label for="fCut">Semana de corte <select id="fCut"></select></label>
+      <label>Ventana
+        <span class="seg" id="fWin" role="group" aria-label="Ventana de análisis">
+          <button type="button" data-w="4">4 sem</button><button type="button" data-w="12">12 sem</button><button type="button" data-w="52">52 sem</button>
+        </span>
+      </label>
+      <div class="ctx" id="ctx"></div>
+    </div>
+  </div>
+</div>
+
+<main class="wrap">
+  <!-- RESUMEN -->
+  <section class="view" id="v-resumen" hidden>
+    <div class="tiles" id="tilesRes"></div>
+    <div class="g-wide">
+      <div class="panel"><h3>Hallazgos automáticos <span class="hint">se recalculan con cada corte y ventana</span></h3><ul class="insights" id="insights"></ul></div>
+      <div class="panel"><h3>Equipos con más tiempo perdido <span class="hint" id="topHint"></span></h3><p class="sub">% del tiempo de carga (EPT + causas internas) perdido por fallas del equipo. La línea punteada es la meta de 0,5 %.</p><div class="chart tall" id="chTop"></div></div>
+    </div>
+    <div class="panel"><h3>Mapa de confiabilidad <span class="hint">cada punto es un equipo · 52 semanas contra 12 semanas</span></h3>
+      <p class="sub">Abajo a la izquierda cumplen la meta. Bajo la diagonal están mejorando (sus últimas 12 semanas son mejores que el año). Clic en un punto para abrir el equipo.</p>
+      <div class="chart tall" id="chMap"></div></div>
+  </section>
+
+  <!-- EQUIPOS -->
+  <section class="view" id="v-equipos" hidden>
+    <div class="panel">
+      <h3>Indicador 52-12-4 por equipo <span class="hint" id="eqHint"></span></h3>
+      <p class="sub">Porcentaje del tiempo de carga de la línea perdido por fallas (causas internas) de cada equipo. Estado ATO: <b>Cumple</b> = 52W y 12W bajo 0,5 %. <b>Mejorando</b> = 52W sobre meta pero 12W por debajo de 52W. <b>Alerta</b> = 52W bajo meta pero 12W sobre meta. <b>Crítico</b> = 12W sobre meta y peor que 52W.</p>
+      <div class="tools">
+        <input type="search" id="eqSearch" placeholder="Buscar equipo o tipo…" aria-label="Buscar equipo">
+        <span id="eqStatusChips" style="display:flex;flex-wrap:wrap;gap:6px"></span>
+        <button class="btn ghost" id="eqCsv" type="button">Descargar CSV</button>
+      </div>
+      <div class="tablebox scroll"><table id="eqTable"></table></div>
+    </div>
+  </section>
+
+  <!-- DETALLE EQUIPO -->
+  <section class="view" id="v-equipo" hidden>
+    <div class="panel">
+      <div class="tools" style="margin-top:0">
+        <label for="eqSel" class="sr">Equipo</label>
+        <select id="eqSel" style="min-width:min(100%,360px)"></select>
+        <span id="eqPill"></span>
+      </div>
+      <div style="margin-top:12px" class="triad" id="triad"></div>
+      <div class="tiles" id="tilesEq" style="margin-top:12px"></div>
+    </div>
+    <div class="g2">
+      <div class="panel"><h3>Tendencia 52-12-4 <span class="hint">móvil, semana a semana</span></h3><div class="chart" id="chRoll"></div></div>
+      <div class="panel"><h3>Horas perdidas por semana</h3><div class="chart" id="chWeekEq"></div></div>
+    </div>
+    <div class="panel">
+      <h3>¿En qué semana vuelve a 12W ≤ 0,5 %?</h3>
+      <p class="sub">Proyección del 12W móvil si en las próximas semanas el equipo pierde cierta cantidad de tiempo. Se usa el tiempo de carga promedio de las últimas 4 semanas.</p>
+      <div class="proj-ctl">
+        <label for="projMin">Estimación de tiempo perdido por semana</label>
+        <input type="number" id="projMin" min="0" step="1" style="width:110px"> <span>min/sem</span>
+        <span class="note" id="projNote"></span>
+      </div>
+      <div class="chart" id="chProj"></div>
+      <p class="proj-ans" id="projAns"></p>
+    </div>
+    <div class="g2">
+      <div class="panel"><h3>Subconjuntos que más fallan <span class="hint" id="scHint"></span></h3><div class="chart" id="chSc"></div></div>
+      <div class="panel"><h3>Causas raíz principales <span class="hint" id="crHint"></span></h3><div class="chart" id="chCr"></div></div>
+    </div>
+    <div class="g2">
+      <div class="panel"><h3>Microparadas contra fallas largas</h3><p class="sub">Participación de cada clasificación en número de eventos y en minutos perdidos.</p><div class="chart short" id="chClas"></div></div>
+      <div class="panel"><h3>¿Falla propia o de la línea?</h3><p class="sub">Tipo de parada API: propia del equipo, por acumulación (bloqueo aguas abajo) o por falta de contenedor (sin alimentación).</p><div class="chart short" id="chApi"></div></div>
+    </div>
+    <div class="panel"><h3>Bitácora de fallas ≥ 5 min <span class="hint" id="bitHint"></span></h3><div class="tablebox scroll"><table id="bitTable"></table></div></div>
+  </section>
+
+  <!-- LINEA -->
+  <section class="view" id="v-linea" hidden>
+    <div class="tiles" id="tilesLin"></div>
+    <div class="panel"><h3>Indicadores de eficiencia semanales</h3><p class="sub">LEF = EPT / (EPT + causas internas) · OEE = EPT / (total − NST − DPA) · GLY = EPT / (total − NST) · OAE = EPT / tiempo total. La franja sombreada es la ventana seleccionada.</p><div class="chart" id="chInd"></div></div>
+    <div class="g2">
+      <div class="panel"><h3>¿En qué se van las 168 horas de la semana?</h3><div class="chart" id="chHours"></div></div>
+      <div class="panel"><h3>Producción semanal <span class="hint">hectolitros</span></h3><div class="chart" id="chHl"></div></div>
+    </div>
+    <div class="g2">
+      <div class="panel"><h3>LEF por turno <span class="hint" id="turHint"></span></h3><div class="chart short" id="chTurno"></div></div>
+      <div class="panel"><h3>Cambios de formato por semana</h3><div class="chart short" id="chChg"></div></div>
+    </div>
+  </section>
+
+  <!-- PARADAS -->
+  <section class="view" id="v-paradas" hidden>
+    <div class="g2">
+      <div class="panel"><h3>Tiempo perdido por tipo de parada <span class="hint" id="tpHint"></span></h3><p class="sub">Sin contar tiempo no programado (falta de demanda).</p><div class="chart" id="chTipo"></div></div>
+      <div class="panel"><h3>Causas raíz de la línea <span class="hint" id="crlHint"></span></h3><p class="sub">Fallas de equipo (causas internas), en horas.</p><div class="chart" id="chCrl"></div></div>
+    </div>
+    <div class="panel"><h3>Mapa de calor: equipo × semana <span class="hint">horas de falla · últimas 26 semanas · 15 equipos con más horas</span></h3><div class="chart tall" id="chHeat"></div></div>
+    <div class="g2">
+      <div class="panel"><h3>¿A qué hora fallan los equipos? <span class="hint" id="hhHint"></span></h3><p class="sub">Número de fallas según hora de inicio y día de la semana.</p><div class="chart" id="chHour"></div></div>
+      <div class="panel"><h3>Microparadas por semana</h3><p class="sub">Eventos de falla de menos de 5 minutos.</p><div class="chart" id="chMicro"></div></div>
+    </div>
+  </section>
+
+  <!-- COMPARAR -->
+  <section class="view" id="v-comparar" hidden>
+    <div class="panel"><h3>Comparativo entre líneas <span class="hint" id="cmpHint"></span></h3><div class="tablebox"><table id="cmpTable"></table></div></div>
+    <div class="g2">
+      <div class="panel"><h3>LEF semanal por línea</h3><div class="chart" id="chCmpLef"></div></div>
+      <div class="panel"><h3>Equipos sobre la meta en 12W</h3><div class="chart" id="chCmpOver"></div></div>
+    </div>
+    <div class="panel"><h3>12W por tipo de equipo <span class="hint">% del tiempo de carga perdido por todos los equipos del tipo</span></h3><div class="chart tall" id="chCmpTipo"></div></div>
+  </section>
+
+  <!-- CARGAR -->
+  <section class="view" id="v-cargar" hidden>
+    <div class="drop-all" id="dropAll">
+      <h3 style="font-size:24px">Carga los archivos MED de cada línea</h3>
+      <p>Arrastra aquí uno o varios Excel (L5, L7, LE7, L8, L9). Se asignan solos por el nombre del archivo. También puedes usar el botón de cada línea.</p>
+      <button class="btn primary" id="pickAll" type="button">Elegir archivos</button>
+      <input type="file" id="fileAll" accept=".xlsx,.xlsm" multiple hidden>
+    </div>
+    <div class="slots" id="slots"></div>
+    <div class="panel">
+      <h3>Cómo funciona</h3>
+      <ol class="howto">
+        <li>Solo se leen las hojas <b>BD PARADAS</b> y <b>BD TIEMPOS</b>. Las demás hojas se ignoran.</li>
+        <li>El archivo se procesa en tu navegador. Los datos no se envían a ningún servidor y quedan guardados en este navegador para la próxima visita.</li>
+        <li>Cada semana, vuelve a cargar el archivo actualizado de la línea: reemplaza al anterior.</li>
+        <li>El 52-12-4 de un equipo = horas de falla del equipo ÷ (EPT + horas por causas internas de la línea) en 52, 12 y 4 semanas hasta la semana de corte.</li>
+      </ol>
+    </div>
+  </section>
+</main>
+<div class="wrap"><footer>Confiabilidad – Equipos Envase · Los datos se procesan localmente en tu navegador. <button class="btn ghost" id="clearAll" type="button" style="min-height:28px;padding:2px 10px;margin-left:8px">Borrar datos guardados</button></footer></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.1/echarts.min.js"></script>
+<script>
+/* =====================================================================
+   1) LECTOR DE EXCEL (se ejecuta en un Web Worker)
+   Lee el .xlsx como zip, descomprime en streaming y extrae solo
+   BD PARADAS y BD TIEMPOS. No depende de librerías externas.
+   ===================================================================== */
+function parserModule(isWorker){
+  const dec = new TextDecoder();
+  const u16=(b,o)=>b[o]|(b[o+1]<<8);
+  const u32=(b,o)=>(b[o]|(b[o+1]<<8)|(b[o+2]<<16)|(b[o+3]<<24))>>>0;
+  const norm=s=>String(s==null?'':s).normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase().replace(/\s+/g,' ').trim();
+  const ENT={amp:'&',lt:'<',gt:'>',quot:'"',apos:"'"};
+  function unesc(s){
+    if(s.indexOf('&')>=0) s=s.replace(/&(#x[0-9a-f]+|#\d+|\w+);/gi,(m,g)=>g[0]==='#'?String.fromCodePoint(g[1]==='x'||g[1]==='X'?parseInt(g.slice(2),16):parseInt(g.slice(1),10)):(ENT[g]??m));
+    if(s.indexOf('_x')>=0) s=s.replace(/_x([0-9A-Fa-f]{4})_/g,(m,h)=>String.fromCharCode(parseInt(h,16)));
+    return s;
+  }
+  function attr(s,n){const m=new RegExp('(?:^|\\s)'+n.replace(':','\\:')+'="([^"]*)"').exec(s);return m?m[1]:'';}
+  function readZip(buf){
+    let eocd=-1;
+    for(let i=buf.length-22;i>=Math.max(0,buf.length-65558);i--){if(buf[i]===0x50&&buf[i+1]===0x4b&&buf[i+2]===5&&buf[i+3]===6){eocd=i;break;}}
+    if(eocd<0) throw new Error('El archivo no parece un Excel .xlsx válido.');
+    const count=u16(buf,eocd+10); let off=u32(buf,eocd+16); const out={};
+    for(let k=0;k<count;k++){
+      if(u32(buf,off)!==0x02014b50) break;
+      const method=u16(buf,off+10); let comp=u32(buf,off+20),unc=u32(buf,off+24);
+      const nl=u16(buf,off+28),el=u16(buf,off+30),cl=u16(buf,off+32); let lo=u32(buf,off+42);
+      const name=dec.decode(buf.subarray(off+46,off+46+nl));
+      if(comp===0xFFFFFFFF||unc===0xFFFFFFFF||lo===0xFFFFFFFF){
+        let p=off+46+nl; const end=p+el;
+        while(p<end){const id=u16(buf,p),sz=u16(buf,p+2);
+          if(id===1){let q=p+4;const r=()=>{const v=u32(buf,q)+u32(buf,q+4)*4294967296;q+=8;return v;};
+            if(unc===0xFFFFFFFF)unc=r(); if(comp===0xFFFFFFFF)comp=r(); if(lo===0xFFFFFFFF)lo=r();}
+          p+=4+sz;}
+      }
+      out[name]={method,comp,unc,lo};
+      off+=46+nl+el+cl;
+    }
+    return out;
+  }
+  function entryStream(buf,e){
+    const nl=u16(buf,e.lo+26),el=u16(buf,e.lo+28),start=e.lo+30+nl+el;
+    let s=new Blob([buf.subarray(start,start+e.comp)]).stream();
+    if(e.method===8) s=s.pipeThrough(new DecompressionStream('deflate-raw'));
+    else if(e.method!==0) throw new Error('Formato de compresión no soportado.');
+    return s.pipeThrough(new TextDecoderStream());
+  }
+  async function readText(buf,e){let out='';const r=entryStream(buf,e).getReader();for(;;){const{done,value}=await r.read();if(done)break;out+=value;}return out;}
+  function parseSST(xml){
+    const out=[];const re=/<si>([\s\S]*?)<\/si>|<si\/>/g;const tre=/<t\b[^>]*>([\s\S]*?)<\/t>/g;let m;
+    while((m=re.exec(xml))){
+      if(m[1]===undefined){out.push('');continue;}
+      let inner=m[1]; if(inner.indexOf('<rPh')>=0) inner=inner.replace(/<rPh\b[\s\S]*?<\/rPh>/g,'');
+      let s='',t; tre.lastIndex=0; while((t=tre.exec(inner))) s+=t[1];
+      out.push(unesc(s));
+    }
+    return out;
+  }
+  function colIdx(a,i){let n=0;for(;i<a.length;i++){const c=a.charCodeAt(i);if(c<65||c>90)break;n=n*26+(c-64);}return n-1;}
+  async function streamRows(buf,e,sst,onRow,onProg){
+    const reader=entryStream(buf,e).getReader();
+    let carry='',seen=0,stop=false;const total=e.unc||1;
+    const rowRe=/<row\b[^>]*?(?:\/>|>([\s\S]*?)<\/row>)/g;
+    const cRe=/<c\b([^>]*?)(?:\/>|>([\s\S]*?)<\/c>)/g;
+    const tRe=/<t\b[^>]*>([\s\S]*?)<\/t>/;
+    function handle(seg){
+      rowRe.lastIndex=0;let m;
+      while((m=rowRe.exec(seg))){
+        const body=m[1]; if(!body) continue;
+        const row=[];let c,last=-1; cRe.lastIndex=0;
+        while((c=cRe.exec(body))){
+          const a=c[1],inner=c[2];
+          const ri=a.indexOf('r="'); const ci=ri>=0?colIdx(a,ri+3):last+1; last=ci;
+          if(inner===undefined) continue;
+          const ti=a.indexOf('t="'); const t=ti>=0?a.slice(ti+3,a.indexOf('"',ti+3)):'';
+          let v;
+          if(t==='inlineStr'){const mm=tRe.exec(inner);v=mm?unesc(mm[1]):'';}
+          else{
+            const vs=inner.indexOf('<v'); if(vs<0) continue;
+            const gt=inner.indexOf('>',vs),ve=inner.indexOf('</v>',gt); const raw=inner.slice(gt+1,ve);
+            if(t==='s') v=sst[+raw]; else if(t==='str') v=unesc(raw); else if(t==='b') v=raw==='1'; else if(t==='e') continue; else v=+raw;
+          }
+          row[ci]=v;
+        }
+        if(onRow(row)===false){stop=true;return;}
+      }
+    }
+    for(;;){
+      const{done,value}=await reader.read(); if(done) break;
+      carry+=value; seen+=value.length;
+      const k=carry.lastIndexOf('</row>');
+      if(k>=0){const seg=carry.slice(0,k+6);carry=carry.slice(k+6);handle(seg);if(stop){try{reader.cancel();}catch(_){}return;}}
+      if(onProg) onProg(Math.min(1,seen/total));
+    }
+    if(carry&&!stop) handle(carry);
+  }
+  function toDay(v){
+    if(v==null||v==='') return null;
+    if(typeof v==='number'){return (v>20000&&v<80000)?Math.floor(v)-25569:null;}
+    const s=String(v).trim();let m=/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})/.exec(s);
+    if(m) return Math.floor(Date.UTC(+m[3],+m[2]-1,+m[1])/864e5);
+    m=/^(\d{4})-(\d{1,2})-(\d{1,2})/.exec(s); if(m) return Math.floor(Date.UTC(+m[1],+m[2]-1,+m[3])/864e5);
+    return null;
+  }
+  function toHour(v){
+    if(v==null||v==='') return -1;
+    if(typeof v==='number'){const f=v-Math.floor(v);return f*24;}
+    const m=/(\d{1,2}):(\d{2})/.exec(String(v)); return m?(+m[1])+(+m[2])/60:-1;
+  }
+  const num=v=>typeof v==='number'?v:(v==null||v===''?0:(parseFloat(String(v).replace(',','.'))||0));
+  function makeDict(){const map=new Map(),list=[];return{list,id(v){const s=v==null?'':String(v).trim();let i=map.get(s);if(i===undefined){i=list.length;list.push(s);map.set(s,i);}return i;}};}
+
+  const PF={fecha:'FECHA',turno:'TURNO',llen:'LLENADORA',hini:'HORA INICIO LLENADORA',parada:'PARADA',tipo:'TIPO PARADA',sub:'SUBTIPO PARADA',l4:'SUBTIPO PARADA L4',prod:'NOMBRE PRODUCTO',teq:'TIPO EQUIPO',eq:'EQUIPO',sc:'SUB CONJUNTO',det:'DETALLE',min:'TIEMPO PARADA (MIN)',hrs:'TIEMPO PARADA (HRS)',minL:'TIEMPO PARADA LLENADORA (MIN)',causa:'CAUSA RAIZ',acc:'ACCIONES',clas:'CLASIFICACION DEL TIEMPO DE PARADA',api:'TIPO PARADA API'};
+  const PDICT=['turno','llen','parada','tipo','sub','l4','prod','teq','eq','sc','det','causa','acc','clas','api'];
+  const TF={fecha:'FECHA',turno:'TURNO',hl:'PRODUCCION HL',nchg:'# CHANGEOVERS',chg:'CHANGEOVERS TIME (HRS)',total:'TOTAL TIME (HRS)',ept:'EPT (HRS)',nst:'NST REAL (HRS)',dpa:'DPA REAL (HRS)',ec:'EXTERNAL CAUSES REAL (HRS)',ic:'INTERNAL CAUSES REAL (HRS)'};
+
+  function headerMap(row,fields){const idx={};const want={};for(const k in fields)want[fields[k]]=k;
+    for(let i=0;i<row.length;i++){if(row[i]==null)continue;const h=norm(row[i]);const k=want[h];if(k&&idx[k]===undefined)idx[k]=i;}return idx;}
+
+  async function parse(buf,prog){
+    prog=prog||(()=>{});
+    prog('Abriendo archivo',0);
+    const zip=readZip(buf);
+    if(!zip['xl/workbook.xml']) throw new Error('El archivo no contiene un libro de Excel.');
+    const wb=await readText(buf,zip['xl/workbook.xml']);
+    const rels=zip['xl/_rels/workbook.xml.rels']?await readText(buf,zip['xl/_rels/workbook.xml.rels']):'';
+    const relMap={};for(const m of rels.matchAll(/<Relationship\b([^>]*?)\/?>/g)) relMap[attr(m[1],'Id')]={t:attr(m[1],'Target'),ty:attr(m[1],'Type')};
+    const path=t=>t.startsWith('/')?t.slice(1):'xl/'+t.replace(/^\.\//,'');
+    const sheets={};for(const m of wb.matchAll(/<sheet\b([^>]*?)\/?>/g)){const r=relMap[attr(m[1],'r:id')];if(r)sheets[norm(unesc(attr(m[1],'name')))]=path(r.t);}
+    const find=key=>sheets[key]||Object.entries(sheets).find(([n])=>n.replace(/[^A-Z]/g,'').includes(key.replace(/[^A-Z]/g,'')))?.[1];
+    const pPath=find('BD PARADAS'),tPath=find('BD TIEMPOS');
+    if(!pPath||!zip[pPath]) throw new Error('No encontré la hoja "BD PARADAS" en este archivo.');
+    if(!tPath||!zip[tPath]) throw new Error('No encontré la hoja "BD TIEMPOS" en este archivo.');
+    const sr=Object.values(relMap).find(r=>/sharedStrings$/i.test(r.ty));const sPath=sr?path(sr.t):'xl/sharedStrings.xml';
+    prog('Leyendo textos',0.02);
+    const sst=zip[sPath]?parseSST(await readText(buf,zip[sPath])):[];
+
+    // ---- BD PARADAS
+    const D={};for(const k of PDICT)D[k]=makeDict();
+    const A={day:[],hini:[],min:[],minL:[]};for(const k of PDICT)A[k]=[];
+    let hp=null,scanned=0;
+    await streamRows(buf,zip[pPath],sst,row=>{
+      if(!hp){scanned++;const h=headerMap(row,PF);if(h.fecha!==undefined&&h.parada!==undefined&&h.eq!==undefined){hp=h;}else if(scanned>200){throw new Error('No encontré los encabezados (FECHA, PARADA, EQUIPO) en BD PARADAS.');}return;}
+      const day=toDay(row[hp.fecha]); const par=row[hp.parada]; if(day==null||par==null||par==='') return;
+      A.day.push(day);
+      for(const k of PDICT) A[k].push(hp[k]!==undefined?D[k].id(row[hp[k]]):D[k].id(''));
+      let mn=hp.min!==undefined?num(row[hp.min]):(hp.hrs!==undefined?num(row[hp.hrs])*60:0);
+      A.min.push(mn); A.minL.push(hp.minL!==undefined?num(row[hp.minL]):mn);
+      A.hini.push(hp.hini!==undefined?toHour(row[hp.hini]):-1);
+    },f=>prog('Leyendo BD PARADAS',0.04+f*0.84));
+    if(!hp) throw new Error('BD PARADAS está vacía o no tiene encabezados reconocibles.');
+
+    // ---- BD TIEMPOS
+    const TD={turno:makeDict()};const TA={day:[],turno:[],hl:[],nchg:[],chg:[],total:[],ept:[],nst:[],dpa:[],ec:[],ic:[]};
+    let ht=null;scanned=0;
+    await streamRows(buf,zip[tPath],sst,row=>{
+      if(!ht){scanned++;const h=headerMap(row,TF);if(h.fecha!==undefined&&h.turno!==undefined&&h.ept!==undefined&&h.total!==undefined){ht=h;}else if(scanned>400){throw new Error('No encontré los encabezados (FECHA, TURNO, EPT) en BD TIEMPOS.');}return;}
+      const day=toDay(row[ht.fecha]);const tot=row[ht.total]; if(day==null||tot==null||tot==='') return;
+      TA.day.push(day);TA.turno.push(TD.turno.id(row[ht.turno]));
+      for(const k of ['hl','nchg','chg','total','ept','nst','dpa','ec','ic']) TA[k].push(ht[k]!==undefined?num(row[ht[k]]):0);
+    },f=>prog('Leyendo BD TIEMPOS',0.88+f*0.11));
+    if(!ht) throw new Error('BD TIEMPOS no tiene encabezados reconocibles.');
+
+    const P={n:A.day.length,day:Int32Array.from(A.day),hini:Float32Array.from(A.hini),min:Float32Array.from(A.min),minL:Float32Array.from(A.minL),dict:{}};
+    for(const k of PDICT){P[k]=Int32Array.from(A[k]);P.dict[k]=D[k].list;}
+    const T={n:TA.day.length,day:Int32Array.from(TA.day),turno:Int32Array.from(TA.turno),dict:{turno:TD.turno.list}};
+    for(const k of ['hl','nchg','chg','total','ept','nst','dpa','ec','ic']) T[k]=Float64Array.from(TA[k]);
+    prog('Listo',1);
+    return {P,T};
+  }
+  if(isWorker){
+    self.onmessage=async ev=>{
+      try{const res=await parse(new Uint8Array(ev.data.buf),(s,p)=>self.postMessage({type:'progress',s,p}));
+        const tr=[];for(const o of [res.P,res.T])for(const k in o)if(o[k]&&o[k].buffer instanceof ArrayBuffer)tr.push(o[k].buffer);
+        self.postMessage({type:'done',res},tr);}
+      catch(err){self.postMessage({type:'error',message:err&&err.message?err.message:String(err)});}
+    };
+  }
+  return {parse};
+}
+
+/* =====================================================================
+   2) CONFIGURACIÓN
+   ===================================================================== */
+const LINEAS=['L5','L7','LE7','L8','L9'];   // edita aquí si cambian las líneas
+const META=0.005;                             // meta 52-12-4: 0,5 %
+const STATUS={
+  ok:{label:'Cumple',cls:'good'},
+  mej:{label:'Mejorando',cls:'warning'},
+  ale:{label:'Alerta',cls:'serious'},
+  cri:{label:'Crítico',cls:'critical'}
+};
+const PARADA_ES={'INTERNAL CAUSES':'Causas internas (fallas)','EXTERNAL CAUSES':'Causas externas','DOWN TIME OF PLANNED ACTIVITIES':'Actividades planeadas','NOT SCHEDULED TIME':'No programado'};
+const MESES=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+
+/* =====================================================================
+   3) UTILIDADES
+   ===================================================================== */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const normS=s=>String(s==null?'':s).normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase().replace(/\s+/g,' ').trim();
+const nf=(v,d=0)=>v==null||!isFinite(v)?'–':v.toLocaleString('es-CO',{minimumFractionDigits:d,maximumFractionDigits:d});
+const pct=(v,d=2)=>v==null||!isFinite(v)?'–':nf(v*100,d)+' %';
+const hrs=v=>v==null?'–':(v>=100?nf(v,0):v>=10?nf(v,1):nf(v,2))+' h';
+const mondayOf=d=>d-((d+3)%7);
+function dstr(day,yr=true){const d=new Date(day*864e5);return d.getUTCDate()+' '+MESES[d.getUTCMonth()]+(yr?' '+d.getUTCFullYear():'');}
+function weekNum(day){const y=new Date(day*864e5).getUTCFullYear();const j1=Math.floor(Date.UTC(y,0,1)/864e5);return{y,w:Math.floor((day-j1+((j1+3)%7))/7)+1};}
+function wk(mon,long){const{y,w}=weekNum(mon+6);return long?`S${String(w).padStart(2,'0')} ${y}`:`S${String(w).padStart(2,'0')}·${String(y).slice(2)}`;}
+function toast(msg){const t=document.createElement('div');t.className='toast';t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),3200);}
+function cssv(){const s=getComputedStyle(document.documentElement);const g=n=>s.getPropertyValue(n).trim();
+  return{bg:g('--bg'),surface:g('--surface'),surface2:g('--surface-2'),ink:g('--ink'),ink2:g('--ink-2'),muted:g('--muted'),line:g('--line'),grid:g('--grid'),accent:g('--accent'),
+    s:[1,2,3,4,5,6,7,8].map(i=>g('--s'+i)),good:g('--good'),warning:g('--warning'),serious:g('--serious'),critical:g('--critical'),
+    seq:['--seq-lo','--seq-1','--seq-2','--seq-3','--seq-4','--seq-hi'].map(g)};}
+function statusOf(p52,p12){
+  if(p52<META&&p12<META) return 'ok';
+  if(p52>=META&&p12<p52) return 'mej';
+  if(p52<META&&p12>=META) return 'ale';
+  return 'cri';
+}
+const pill=k=>`<span class="pill ${STATUS[k].cls}"><i></i>${STATUS[k].label}</span>`;
+
+/* =====================================================================
+   4) MODELO DE DATOS POR LÍNEA
+   ===================================================================== */
+function buildModel(slot,raw){
+  const P=raw.P,T=raw.T;
+  const wset=new Set();for(let i=0;i<T.n;i++)wset.add(mondayOf(T.day[i]));
+  const weeks=[...wset].sort((a,b)=>a-b);const nW=weeks.length;const wIdx=new Map(weeks.map((m,i)=>[m,i]));
+  const W={};for(const k of ['ept','ic','ec','dpa','nst','total','hl','nchg','chg'])W[k]=new Float64Array(nW);
+  const tWeek=new Int32Array(T.n);
+  for(let i=0;i<T.n;i++){const w=wIdx.get(mondayOf(T.day[i]));tWeek[i]=w;for(const k in W)W[k][w]+=T[k][i];}
+  const den=new Float64Array(nW);for(let w=0;w<nW;w++)den[w]=W.ept[w]+W.ic[w];
+  const pre=a=>{const p=new Float64Array(a.length+1);for(let i=0;i<a.length;i++)p[i+1]=p[i]+a[i];return p;};
+  const denPre=pre(den);
+  // paradas
+  const pd=P.dict.parada.map(normS);
+  const icCode=pd.findIndex(s=>s.includes('INTERNAL')||s.includes('INTERNA'));
+  const nstCode=pd.findIndex(s=>s.includes('NOT SCHEDULED')||s.includes('NO PROGRAM'));
+  const clasN=P.dict.clas.map(normS);const microCode=clasN.findIndex(s=>s.includes('MENOR A 5'));
+  const pWeek=new Int32Array(P.n);
+  const eqMap=new Map();const eqs=[];
+  for(let i=0;i<P.n;i++){
+    const w=wIdx.get(mondayOf(P.day[i]));pWeek[i]=w===undefined?-1:w;
+    if(P.parada[i]!==icCode||w===undefined) continue;
+    const name=P.dict.eq[P.eq[i]];if(!name) continue;
+    let e=eqMap.get(P.eq[i]);
+    if(!e){e={id:eqs.length,code:P.eq[i],name,tipoCnt:{},fail:new Float64Array(nW),cnt:new Int32Array(nW),rows:[]};eqMap.set(P.eq[i],e);eqs.push(e);}
+    e.fail[w]+=P.min[i]/60;e.cnt[w]++;e.rows.push(i);
+    const tp=P.dict.teq[P.teq[i]]||'Sin tipo';e.tipoCnt[tp]=(e.tipoCnt[tp]||0)+1;
+  }
+  for(const e of eqs){e.tipo=Object.entries(e.tipoCnt).sort((a,b)=>b[1]-a[1])[0]?.[0]||'Sin tipo';e.pre=pre(e.fail);e.cpre=pre(e.cnt);}
+  return {slot,P,T,weeks,nW,wIdx,W,den,denPre,eqs,icCode,nstCode,microCode,pWeek,tWeek,pre};
+}
+function rng(M,end,N){const a=Math.max(0,end-N+1);return[a,end];}
+function sumP(pre,a,b){return a>b?0:pre[b+1]-pre[a];}
+function kpiEq(M,e,end,N){const[a,b]=rng(M,end,N);const d=sumP(M.denPre,a,b);return d>0?sumP(e.pre,a,b)/d:0;}
+function eqRow(M,e,end){
+  const p52=kpiEq(M,e,end,52),p12=kpiEq(M,e,end,12),p4=kpiEq(M,e,end,4);
+  const[a,b]=rng(M,end,12);const h12=sumP(e.pre,a,b),n12=sumP(e.cpre,a,b);
+  const spark=[];for(let w=Math.max(11,end-25);w<=end;w++)spark.push(kpiEq(M,e,w,12));
+  const h4=sumP(e.pre,Math.max(0,end-3),end)/Math.min(4,end+1);
+  const ret=projReturn(M,e,end,h4);
+  return{e,p52,p12,p4,h12,n12,mttr:n12?h12*60/n12:null,st:statusOf(p52,p12),spark,ret,h4};
+}
+function den4(M,end){const a=Math.max(0,end-3);return sumP(M.denPre,a,end)/(end-a+1);}
+function projSeries(M,e,end,h,K=20,N=12){
+  const d4=den4(M,end);const out=[];
+  for(let k=1;k<=K;k++){const past=Math.max(0,N-k);let num=k*h,dd=k*d4;
+    if(past>0){const a=Math.max(0,end-past+1);num+=sumP(e.pre,a,end);dd+=sumP(M.denPre,a,end);}
+    out.push(dd>0?num/dd:0);}
+  return out;
+}
+function projReturn(M,e,end,h){
+  if(kpiEq(M,e,end,12)<=META) return 0;
+  const s=projSeries(M,e,end,h,12);const k=s.findIndex(v=>v<=META);return k<0?null:k+1;
+}
+function windowAgg(M,end,N){
+  const[a,b]=rng(M,end,N);const W=M.W;const s={};
+  for(const k in W){let t=0;for(let w=a;w<=b;w++)t+=W[k][w];s[k]=t;}
+  s.lef=s.ept+s.ic>0?s.ept/(s.ept+s.ic):null;
+  s.oee=s.total-s.nst-s.dpa>0?s.ept/(s.total-s.nst-s.dpa):null;
+  s.gly=s.total-s.nst>0?s.ept/(s.total-s.nst):null;
+  s.oae=s.total>0?s.ept/s.total:null;
+  s.a=a;s.b=b;s.n=b-a+1;return s;
+}
+function weeklyInd(M){const W=M.W;return M.weeks.map((_,w)=>{const e=W.ept[w],t=W.total[w];return{
+  lef:e+W.ic[w]>0?e/(e+W.ic[w]):null,oee:t-W.nst[w]-W.dpa[w]>0?e/(t-W.nst[w]-W.dpa[w]):null,gly:t-W.nst[w]>0?e/(t-W.nst[w]):null,oae:t>0?e/t:null};});}
+
+/* =====================================================================
+   5) ESTADO + PERSISTENCIA (IndexedDB, solo en este navegador)
+   ===================================================================== */
+const state={slot:null,cut:null,win:12,view:'cargar',eq:null,sort:{k:'p12',dir:-1},stFilter:new Set(),search:'',projMin:null};
+const models={};const meta={};
+const DB_NAME='confiabilidad-envase',STORE='lineas';
+function idb(){return new Promise((res,rej)=>{try{const r=indexedDB.open(DB_NAME,1);r.onupgradeneeded=()=>r.result.createObjectStore(STORE);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);}catch(e){rej(e);}});}
+async function idbPut(k,v){try{const db=await idb();await new Promise((res,rej)=>{const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).put(v,k);tx.oncomplete=res;tx.onerror=()=>rej(tx.error);});}catch(e){console.warn('No se pudo guardar en el navegador',e);}}
+async function idbDel(k){try{const db=await idb();await new Promise(res=>{const tx=db.transaction(STORE,'readwrite');k==null?tx.objectStore(STORE).clear():tx.objectStore(STORE).delete(k);tx.oncomplete=res;tx.onerror=res;});}catch(e){}}
+async function idbAll(){try{const db=await idb();return await new Promise(res=>{const out={};const tx=db.transaction(STORE,'readonly');const st=tx.objectStore(STORE);const rq=st.openCursor();rq.onsuccess=()=>{const c=rq.result;if(c){out[c.key]=c.value;c.continue();}else res(out);};rq.onerror=()=>res(out);});}catch(e){return{};}}
+function savePrefs(){try{localStorage.setItem('ce-prefs',JSON.stringify({slot:state.slot,win:state.win}));}catch(e){}}
+function loadPrefs(){try{return JSON.parse(localStorage.getItem('ce-prefs')||'{}');}catch(e){return{};}}
+
+/* =====================================================================
+   6) CARGA DE ARCHIVOS
+   ===================================================================== */
+function slotFromName(name){const n=name.toUpperCase().replace(/[_\-.]/g,' ');
+  if(/\bLE\s*7\b|LE7/.test(n)) return LINEAS.includes('LE7')?'LE7':null;
+  const m=/\bL\s*0?(\d{1,2})\b/.exec(n)||/L(\d{1,2})(?!\d)/.exec(n); if(m){const s='L'+m[1];return LINEAS.includes(s)?s:null;}
+  return null;}
+const busy={};
+function runParse(file,onProg){
+  return new Promise(async(resolve,reject)=>{
+    const fallback=async()=>{try{const buf=new Uint8Array(await file.arrayBuffer());resolve(await parserModule(false).parse(buf,onProg));}catch(e){reject(e);}};
+    let w;try{const src='('+parserModule.toString()+')(true);';w=new Worker(URL.createObjectURL(new Blob([src],{type:'text/javascript'})));}catch(e){w=null;}
+    if(!w) return fallback();
+    let started=false;
+    w.onmessage=ev=>{const d=ev.data;started=true;if(d.type==='progress')onProg(d.s,d.p);else if(d.type==='done'){w.terminate();resolve(d.res);}else{w.terminate();reject(new Error(d.message));}};
+    w.onerror=ev=>{ev.preventDefault&&ev.preventDefault();w.terminate();if(!started)fallback();else reject(new Error(ev.message||'Error leyendo el archivo'));};
+    const buf=await file.arrayBuffer();w.postMessage({buf},[buf]);
+  });
+}
+async function loadFile(slot,file){
+  if(busy[slot]) return;busy[slot]=true;
+  const t0=performance.now();
+  meta[slot]={...(meta[slot]||{}),loading:true,err:null,prog:0,step:'Preparando',file:file.name};renderSlots();
+  try{
+    const raw=await runParse(file,(s,p)=>{meta[slot].prog=p;meta[slot].step=s;updateSlotProg(slot);});
+    if(!raw.T.n) throw new Error('BD TIEMPOS no tiene filas con fecha y tiempo total.');
+    const M=buildModel(slot,raw);
+    models[slot]=M;
+    meta[slot]={file:file.name,loadedAt:Date.now(),rowsP:raw.P.n,rowsT:raw.T.n,secs:(performance.now()-t0)/1000};
+    await idbPut(slot,{raw,meta:meta[slot]});
+    if(!state.slot||!models[state.slot]) state.slot=slot;
+    toast(`${slot}: ${nf(raw.P.n)} paradas y ${nf(raw.T.n)} turnos cargados`);
+    afterDataChange();
+  }catch(e){console.error(e);meta[slot]={...(meta[slot]||{}),loading:false,err:e.message||String(e)};}
+  finally{busy[slot]=false;if(meta[slot])meta[slot].loading=false;renderSlots();renderPlates();}
+}
+function handleFiles(files,forced){
+  const list=[...files].filter(f=>/\.xls[xm]$/i.test(f.name));
+  if(!list.length){toast('Elige archivos de Excel .xlsx');return;}
+  const free=()=>LINEAS.find(l=>!models[l]&&!busy[l]);
+  (async()=>{for(const f of list){const s=forced||slotFromName(f.name)||free();if(!s){toast(`No supe a qué línea asignar ${f.name}`);continue;}await loadFile(s,f);}})();
+}
+
+/* =====================================================================
+   7) RENDER: estructura general
+   ===================================================================== */
+function curModel(){return models[state.slot]||null;}
+function renderPlates(){
+  $('#plates').innerHTML=LINEAS.map(l=>{const M=models[l];const sub=M?('hasta '+wk(M.weeks[M.nW-1])):(meta[l]?.loading?'cargando…':'sin archivo');
+    return `<button type="button" class="plate ${M?'loaded':'empty'} ${state.slot===l&&M?'active':''}" data-slot="${l}" aria-pressed="${state.slot===l}"><span class="dot"></span><span><b>${l}</b><br><small>${sub}</small></span></button>`;}).join('');
+}
+$('#plates').addEventListener('click',ev=>{const b=ev.target.closest('.plate');if(!b)return;const l=b.dataset.slot;
+  if(models[l]){state.slot=l;state.cut=null;state.eq=null;savePrefs();afterDataChange();}else{setView('cargar');}});
+function fillCut(){
+  const M=curModel();const sel=$('#fCut');
+  if(!M){sel.innerHTML='<option>—</option>';sel.disabled=true;return;}
+  sel.disabled=false;
+  if(state.cut==null||state.cut>=M.nW) state.cut=M.nW-1;
+  sel.innerHTML=M.weeks.map((m,i)=>`<option value="${i}">${wk(m,true)} · ${dstr(m,false)}–${dstr(m+6)}</option>`).reverse().join('');
+  sel.value=String(state.cut);
+}
+$('#fCut').addEventListener('change',e=>{state.cut=+e.target.value;renderView();});
+$('#fWin').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;state.win=+b.dataset.w;savePrefs();renderView();});
+function renderCtx(){
+  const M=curModel();
+  for(const b of document.querySelectorAll('#fWin button'))b.setAttribute('aria-pressed',String(+b.dataset.w===state.win));
+  if(!M){$('#ctx').innerHTML='';return;}
+  const[a,b]=rng(M,state.cut,state.win);
+  $('#ctx').innerHTML=`<b>${state.slot}</b> · ventana ${wk(M.weeks[a])} a ${wk(M.weeks[b])} (${b-a+1} sem)`+(b-a+1<state.win?' · <span class="up-bad">historia incompleta</span>':'');
+}
+function setView(v){
+  state.view=v;
+  for(const t of document.querySelectorAll('.tab'))t.setAttribute('aria-selected',String(t.dataset.v===v));
+  for(const s of document.querySelectorAll('.view'))s.hidden=s.id!=='v-'+v;
+  $('#filters').style.display=v==='cargar'?'none':'';
+  try{history.replaceState(null,'','#'+v);}catch(e){}
+  renderView();
+}
+$('#tabs').addEventListener('click',e=>{const t=e.target.closest('.tab');if(t)setView(t.dataset.v);});
+function afterDataChange(){renderPlates();fillCut();renderView();}
+function needData(sec){
+  const el=$('#v-'+sec);let es=el.querySelector('.empty-state');
+  if(!curModel()){
+    if(!es){es=document.createElement('div');es.className='panel empty-state';es.innerHTML='<h3>Aún no hay datos para mostrar</h3><p>Carga el archivo MED de al menos una línea para ver este análisis.</p><button class="btn primary" type="button">Ir a cargar archivos</button>';es.querySelector('button').onclick=()=>setView('cargar');el.prepend(es);}
+    for(const c of el.children)if(c!==es)c.hidden=true;return true;}
+  if(es)es.remove();for(const c of el.children)c.hidden=false;return false;
+}
+function renderView(){
+  renderCtx();
+  const v=state.view;
+  if(v==='cargar'){renderSlots();return;}
+  if(v==='comparar'){renderComparar();return;}
+  if(needData(v)) return;
+  ({resumen:renderResumen,equipos:renderEquipos,equipo:renderEquipo,linea:renderLinea,paradas:renderParadas})[v]();
+}
+
+/* =====================================================================
+   8) GRÁFICOS (ECharts) – helpers
+   ===================================================================== */
+const charts=new Map();
+const ro=new ResizeObserver(entries=>{for(const en of entries){const c=echarts.getInstanceByDom(en.target);if(c)c.resize();}});
+function chart(id,opt,onClick){
+  const el=document.getElementById(id);if(!el||typeof echarts==='undefined')return;
+  let c=echarts.getInstanceByDom(el);if(!c){c=echarts.init(el,null,{renderer:'canvas'});ro.observe(el);charts.set(id,c);}
+  c.off('click');if(onClick)c.on('click',onClick);
+  c.setOption(opt,true);
+}
+function base(){
+  const c=cssv();
+  return{c,o:{
+    textStyle:{fontFamily:'Barlow, system-ui, sans-serif',color:c.ink2,fontSize:12},
+    grid:{left:8,right:16,top:36,bottom:8,containLabel:true},
+    tooltip:{trigger:'axis',backgroundColor:c.surface,borderColor:c.line,borderWidth:1,textStyle:{color:c.ink,fontSize:12.5},extraCssText:'box-shadow:0 4px 16px rgba(0,0,0,.12);border-radius:8px;',axisPointer:{type:'line',lineStyle:{color:c.muted,type:'dashed'}}},
+    legend:{top:0,left:0,icon:'roundRect',itemWidth:12,itemHeight:8,textStyle:{color:c.ink2,fontSize:12.5}},
+    animationDuration:350}};
+}
+function axisCat(c,data,extra){return Object.assign({type:'category',data,axisLine:{lineStyle:{color:c.line}},axisTick:{show:false},axisLabel:{color:c.muted,hideOverlap:true}},extra||{});}
+function axisVal(c,extra){return Object.assign({type:'value',splitLine:{lineStyle:{color:c.grid}},axisLabel:{color:c.muted,formatter:v=>nf(v,Number.isInteger(v)?0:1)},axisLine:{show:false}},extra||{});}
+const pctFmt=v=>nf(v*100,v<0.01?2:1)+' %';
+function metaLine(c,label=true){return{silent:true,symbol:'none',lineStyle:{color:c.critical,type:'dashed',width:1.5},label:{show:label,formatter:'meta 0,5 %',color:c.critical,position:'insideEndTop',fontSize:11},data:[{yAxis:META}]};}
+function spark(vals){
+  if(!vals.length)return'';const w=110,h=28,mx=Math.max(META*1.6,...vals);
+  const x=i=>vals.length===1?w/2:2+i*(w-4)/(vals.length-1),y=v=>h-2-(v/mx)*(h-4);
+  const pts=vals.map((v,i)=>`${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');const last=vals[vals.length-1];
+  return `<svg class="spark" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" aria-hidden="true"><line x1="0" x2="${w}" y1="${y(META).toFixed(1)}" y2="${y(META).toFixed(1)}" stroke="var(--critical)" stroke-width="1" stroke-dasharray="3 3" opacity=".6"/><polyline points="${pts}" fill="none" stroke="var(--s1)" stroke-width="1.6" stroke-linejoin="round"/><circle cx="${x(vals.length-1).toFixed(1)}" cy="${y(last).toFixed(1)}" r="2.6" fill="${last>META?'var(--critical)':'var(--s1)'}"/></svg>`;
+}
+
+/* =====================================================================
+   9) VISTA: RESUMEN
+   ===================================================================== */
+function allRows(M,end){return M.eqs.map(e=>eqRow(M,e,end)).sort((a,b)=>b.p12-a.p12);}
+function microStats(M,a,b){let n=0,nm=0,m=0,mm=0;const P=M.P;for(const e of M.eqs)for(const i of e.rows){const w=M.pWeek[i];if(w<a||w>b)continue;n++;m+=P.min[i];if(P.clas[i]===M.microCode){nm++;mm+=P.min[i];}}return{n,nm,m,mm};}
+function tile(k,v,d,dcls){return `<div class="tile"><span class="k">${k}</span><span class="v">${v}</span>${d?`<span class="d ${dcls||''}">${d}</span>`:''}</div>`;}
+function delta(cur,prev,goodUp,fmt){if(prev==null||cur==null||!isFinite(prev))return['',''];const d=cur-prev;if(Math.abs(d)<1e-9)return['sin cambio vs. ventana anterior','neutral'];
+  const good=goodUp?d>0:d<0;return[`${d>0?'▲':'▼'} ${fmt(Math.abs(d))} vs. ventana anterior`,good?'down-good':'up-bad'];}
+function renderResumen(){
+  const M=curModel(),end=state.cut,N=state.win;const rows=allRows(M,end);
+  const s=windowAgg(M,end,N);const prevEnd=end-N;const sp=prevEnd>=0?windowAgg(M,prevEnd,N):null;
+  const[a,b]=rng(M,end,N);const ms=microStats(M,a,b);
+  const over12=rows.filter(r=>r.p12>META).length,ok=rows.filter(r=>r.st==='ok').length;
+  const dl=delta(s.lef,sp?.lef,true,v=>nf(v*100,1)+' pts');const dh=delta(s.ic,sp?.ic,false,v=>hrs(v));
+  $('#tilesRes').innerHTML=
+    tile(`LEF ${N} sem`,pct(s.lef,1),dl[0],dl[1])+
+    tile(`Horas por fallas ${N} sem`,hrs(s.ic),dh[0],dh[1])+
+    tile('Equipos sobre meta 12W',`${over12}<small style="font-size:18px;color:var(--muted)"> / ${rows.length}</small>`,`${pct(over12/(rows.length||1),0)} de los equipos con fallas`)+
+    tile('Equipos que cumplen ATO',String(ok),'52W y 12W bajo 0,5 %')+
+    tile('Microparadas (&lt; 5 min)',pct(ms.n?ms.nm/ms.n:null,0)+' <small style="font-size:16px;color:var(--muted)">de eventos</small>',`pero solo ${pct(ms.m?ms.mm/ms.m:null,0)} del tiempo de falla`);
+  $('#insights').innerHTML=insights(M,rows,end,N,s,sp,ms).map(x=>`<li class="${x.sev}"><i></i><p><span class="tag">${x.tag}</span>${x.html}</p></li>`).join('');
+  // top chart
+  const key=N===52?'p52':N===4?'p4':'p12';
+  const top=[...rows].sort((x,y)=>y[key]-x[key]).slice(0,12).reverse();
+  $('#topHint').textContent=`${N} semanas`;
+  const{c,o}=base();
+  const colOf=st=>({ok:c.good,mej:c.warning,ale:c.serious,cri:c.critical})[st];
+  chart('chTop',{...o,legend:{show:false},grid:{left:8,right:56,top:22,bottom:8,containLabel:true},
+    tooltip:{...o.tooltip,trigger:'item',formatter:p=>{const r=top[p.dataIndex];return `<b>${esc(r.e.name)}</b><br>${N} sem: ${pct(r[key])}<br>52W ${pct(r.p52)} · 12W ${pct(r.p12)} · 4W ${pct(r.p4)}<br>Estado: ${STATUS[r.st].label}`;}},
+    xAxis:axisVal(c,{axisLabel:{color:c.muted,formatter:pctFmt}}),
+    yAxis:axisCat(c,top.map(r=>r.e.name),{axisLabel:{color:c.ink2,width:170,overflow:'truncate'}}),
+    series:[{type:'bar',barMaxWidth:16,data:top.map(r=>({value:r[key],itemStyle:{color:colOf(r.st),borderRadius:[0,4,4,0]}})),
+      label:{show:true,position:'right',color:c.ink2,formatter:p=>pct(p.value)},markLine:{...metaLine(c),data:[{xAxis:META}],label:{show:true,formatter:'0,5 %',color:c.critical,position:'end'}}}]},
+    p=>{const r=top[p.dataIndex];if(r){state.eq=r.e.name;setView('equipo');}});
+  renderMap(rows);
+}
+function renderMap(rows){
+  const{c,o}=base();const groups=['ok','mej','ale','cri'];const col={ok:c.good,mej:c.warning,ale:c.serious,cri:c.critical};
+  const mx=Math.max(META*3,...rows.map(r=>Math.max(r.p52,r.p12)))*1.08;
+  chart('chMap',{...o,grid:{left:8,right:24,top:56,bottom:28,containLabel:true},
+    legend:{...o.legend,left:'auto',right:0,data:groups.map(g=>STATUS[g].label)},
+    tooltip:{...o.tooltip,trigger:'item',formatter:p=>{const r=p.data.r;return `<b>${esc(r.e.name)}</b><br>${esc(r.e.tipo)}<br>52W ${pct(r.p52)} · 12W ${pct(r.p12)} · 4W ${pct(r.p4)}<br>${hrs(r.h12)} perdidas en 12 sem`;}},
+    xAxis:axisVal(c,{name:'52 semanas',nameLocation:'middle',nameGap:26,nameTextStyle:{color:c.muted},min:0,max:mx,axisLabel:{color:c.muted,formatter:pctFmt}}),
+    yAxis:axisVal(c,{name:'12 semanas',nameGap:14,nameTextStyle:{color:c.muted,align:'left'},min:0,max:mx,axisLabel:{color:c.muted,formatter:pctFmt}}),
+    series:[...groups.map(g=>({name:STATUS[g].label,type:'scatter',symbolSize:12,itemStyle:{color:col[g],borderColor:c.surface,borderWidth:2},
+      emphasis:{scale:1.4,label:{show:true,formatter:p=>p.data.r.e.name,position:'top',color:c.ink,fontSize:12}},
+      data:rows.filter(r=>r.st===g).map(r=>({value:[r.p52,r.p12],r}))})),
+      {type:'line',silent:true,symbol:'none',lineStyle:{color:c.muted,type:'dotted',width:1},data:[[0,0],[mx,mx]],tooltip:{show:false},
+        markLine:{silent:true,symbol:'none',lineStyle:{color:c.critical,type:'dashed',width:1.2},label:{color:c.critical,fontSize:11},data:[{xAxis:META,label:{formatter:'52W = 0,5 %',position:'end'}},{yAxis:META,label:{formatter:'12W = 0,5 %',position:'insideEndTop'}}]},
+        markArea:{silent:true,itemStyle:{color:c.good,opacity:.07},data:[[{coord:[0,0]},{coord:[META,META]}]]}}]},
+    p=>{if(p.data&&p.data.r){state.eq=p.data.r.e.name;setView('equipo');}});
+}
+function insights(M,rows,end,N,s,sp,ms){
+  const out=[];const tot12=rows.reduce((t,r)=>t+r.h12,0);
+  if(rows.length){
+    const w=rows[0];
+    out.push({sev:w.p12>META?'critical':'good',tag:'Equipo más crítico',html:`<b>${esc(w.e.name)}</b> pierde ${pct(w.p12)} del tiempo de carga en 12 semanas (${hrs(w.h12)}), ${tot12?pct(w.h12/tot12,0):''} de todas las horas de falla de la línea.`});
+    const top3=rows.slice(0,3).reduce((t,r)=>t+r.h12,0);
+    if(tot12>0&&rows.length>5) out.push({sev:'info',tag:'Concentración',html:`Los 3 peores equipos concentran <b>${pct(top3/tot12,0)}</b> de las horas de falla en 12 semanas. Atacar esos tres mueve el indicador de toda la línea.`});
+  }
+  const ale=rows.filter(r=>r.st==='ale');
+  if(ale.length) out.push({sev:'serious',tag:'Se están deteriorando',html:`${ale.length===1?'Un equipo cumplía':ale.length+' equipos cumplían'} en 52W y ya supera${ale.length===1?'':'n'} la meta en 12W: <b>${ale.slice(0,4).map(r=>esc(r.e.name)).join(', ')}</b>${ale.length>4?'…':''}.`});
+  const mej=rows.filter(r=>r.st==='mej'&&r.p4<r.p12);
+  if(mej.length) out.push({sev:'warning',tag:'Mejorando',html:`<b>${mej.slice(0,4).map(r=>esc(r.e.name)).join(', ')}</b>${mej.length>4?' y otros':''}: 4W &lt; 12W &lt; 52W, la tendencia va a la baja.`});
+  const cri=rows.filter(r=>r.st==='cri'||r.st==='ale');
+  const slow=cri.map(r=>({r,k0:projReturn(M,r.e,end,0)})).filter(x=>x.k0!=null).sort((a,b)=>b.k0-a.k0)[0];
+  if(slow) out.push({sev:'critical',tag:'Proyección',html:`Aun sin ninguna falla más, <b>${esc(slow.r.e.name)}</b> tardaría <b>${slow.k0} semana${slow.k0>1?'s':''}</b> en volver a 12W ≤ 0,5 % (${wk(M.weeks[end]+7*slow.k0)}).`});
+  const noRet=cri.filter(r=>r.ret==null);
+  if(noRet.length) out.push({sev:'critical',tag:'Al ritmo actual no se recuperan',html:`Con el promedio de pérdida de las últimas 4 semanas, <b>${noRet.slice(0,4).map(r=>esc(r.e.name)).join(', ')}</b> no regresa${noRet.length>1?'n':''} a la meta en 12W.`});
+  if(ms.n) out.push({sev:'info',tag:'Microparadas',html:`<b>${pct(ms.nm/ms.n,0)}</b> de las fallas duran menos de 5 minutos y suman ${pct(ms.mm/(ms.m||1),0)} del tiempo de falla. ${ms.mm/(ms.m||1)>0.4?'Son la principal fuente de pérdida: conviene atacarlas con ajustes y sensores.':'El tiempo se va sobre todo en fallas largas.'}`});
+  // turno
+  const[a,b]=rng(M,end,N);const T=M.T;const tt={};
+  for(let i=0;i<T.n;i++){const w=M.tWeek[i];if(w<a||w>b)continue;const k=T.dict.turno[T.turno[i]];tt[k]=tt[k]||{e:0,ic:0};tt[k].e+=T.ept[i];tt[k].ic+=T.ic[i];}
+  const tl=Object.entries(tt).map(([k,v])=>({k,lef:v.e+v.ic>0?v.e/(v.e+v.ic):1,ic:v.ic})).sort((x,y)=>x.lef-y.lef);
+  if(tl.length>1&&tl[tl.length-1].lef-tl[0].lef>0.01) out.push({sev:'warning',tag:'Turnos',html:`<b>${esc(tl[0].k)}</b> tiene el LEF más bajo (${pct(tl[0].lef,1)}) frente a ${esc(tl[tl.length-1].k)} (${pct(tl[tl.length-1].lef,1)}) en las últimas ${N} semanas.`});
+  if(sp&&s.lef!=null&&sp.lef!=null){const d=s.lef-sp.lef;out.push({sev:d>=0?'good':'serious',tag:'Eficiencia',html:`El LEF ${d>=0?'subió':'bajó'} <b>${nf(Math.abs(d)*100,1)} puntos</b> frente a las ${N} semanas anteriores (${pct(sp.lef,1)} → ${pct(s.lef,1)}).`});}
+  const okN=rows.filter(r=>r.st==='ok').length;
+  if(rows.length) out.push({sev:'good',tag:'Cumplen',html:`<b>${okN} de ${rows.length}</b> equipos cumplen 52W y 12W bajo 0,5 % y son candidatos a recertificación ATO.`});
+  return out.slice(0,8);
+}
+
+/* =====================================================================
+   10) VISTA: TABLA 52-12-4
+   ===================================================================== */
+function renderEquipos(){
+  const M=curModel(),end=state.cut;const rows=allRows(M,end);
+  $('#eqHint').textContent=`corte ${wk(M.weeks[end],true)}`;
+  const cnt={ok:0,mej:0,ale:0,cri:0};rows.forEach(r=>cnt[r.st]++);
+  $('#eqStatusChips').innerHTML=Object.keys(STATUS).map(k=>`<button type="button" class="chipf" data-st="${k}" aria-pressed="${state.stFilter.has(k)}"><span class="pill ${STATUS[k].cls}" style="border:0;padding:0;background:none"><i></i></span>${STATUS[k].label} · ${cnt[k]}</button>`).join('');
+  const q=normS(state.search);
+  let list=rows.filter(r=>(!state.stFilter.size||state.stFilter.has(r.st))&&(!q||normS(r.e.name+' '+r.e.tipo).includes(q)));
+  const{k,dir}=state.sort;const val=r=>k==='name'?r.e.name:k==='ret'?(r.ret==null?999:r.ret):r[k]??-1;
+  list.sort((a,b)=>{const x=val(a),y=val(b);return(typeof x==='string'?x.localeCompare(y):x-y)*dir;});
+  const cols=[['name','Equipo'],['p52','52W','n'],['p12','12W','n'],['p4','4W','n'],['h12','Horas 12W','n'],['n12','Paradas 12W','n'],['mttr','Min/parada','n'],[null,'12W últimas 26 sem'],['st','Estado'],['ret','Vuelve a meta','n']];
+  const th=cols.map(([kk,l,cl])=>`<th class="${cl||''} ${kk?'sortable':''}" ${kk?`data-k="${kk}" aria-sort="${state.sort.k===kk?(dir<0?'descending':'ascending'):'none'}"`:''}>${l}</th>`).join('');
+  const retTxt=r=>r.ret===0?'<span class="down-good">ya cumple</span>':r.ret==null?'<span class="up-bad">no, al ritmo actual</span>':`en ${r.ret} sem · ${wk(M.weeks[end]+7*r.ret)}`;
+  $('#eqTable').innerHTML=`<thead><tr>${th}</tr></thead><tbody>${list.map(r=>`<tr class="click" data-eq="${esc(r.e.name)}"><td><span class="eqn">${esc(r.e.name)}</span><span class="eqt">${esc(r.e.tipo)}</span></td>
+    <td class="n ${r.p52>META?'over':''}">${pct(r.p52)}</td><td class="n ${r.p12>META?'over':''}">${pct(r.p12)}</td><td class="n ${r.p4>META?'over':''}">${pct(r.p4)}</td>
+    <td class="n">${hrs(r.h12)}</td><td class="n">${nf(r.n12)}</td><td class="n">${r.mttr==null?'–':nf(r.mttr,1)}</td><td>${spark(r.spark)}</td><td>${pill(r.st)}</td><td class="n">${retTxt(r)}</td></tr>`).join('')||'<tr><td colspan="10" class="neutral">Ningún equipo coincide con el filtro.</td></tr>'}</tbody>`;
+  state._eqList=list;
+}
+$('#eqTable').addEventListener('click',e=>{const th=e.target.closest('th.sortable');if(th){const k=th.dataset.k;state.sort=state.sort.k===k?{k,dir:-state.sort.dir}:{k,dir:k==='name'?1:-1};renderEquipos();return;}
+  const tr=e.target.closest('tr[data-eq]');if(tr){state.eq=tr.dataset.eq;setView('equipo');}});
+$('#eqStatusChips').addEventListener('click',e=>{const b=e.target.closest('[data-st]');if(!b)return;const k=b.dataset.st;state.stFilter.has(k)?state.stFilter.delete(k):state.stFilter.add(k);renderEquipos();});
+$('#eqSearch').addEventListener('input',e=>{state.search=e.target.value;renderEquipos();});
+$('#eqCsv').addEventListener('click',()=>{
+  const M=curModel();if(!M)return;const rows=state._eqList||allRows(M,state.cut);
+  const f=v=>String(v).replace('.',',');
+  const lines=[['Linea','Equipo','Tipo','52W %','12W %','4W %','Horas 12W','Paradas 12W','Min por parada','Estado','Semanas para volver a meta'].join(';')];
+  for(const r of rows)lines.push([state.slot,r.e.name,r.e.tipo,f((r.p52*100).toFixed(3)),f((r.p12*100).toFixed(3)),f((r.p4*100).toFixed(3)),f(r.h12.toFixed(2)),r.n12,r.mttr==null?'':f(r.mttr.toFixed(1)),STATUS[r.st].label,r.ret==null?'No al ritmo actual':r.ret].map(x=>/[;"\n]/.test(String(x))?'"'+String(x).replace(/"/g,'""')+'"':x).join(';'));
+  const blob=new Blob(['﻿'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`52-12-4_${state.slot}_${wk(M.weeks[state.cut]).replace('·','-')}.csv`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);
+});
+
+/* =====================================================================
+   11) VISTA: DETALLE DE EQUIPO
+   ===================================================================== */
+function topBy(M,e,a,b,field,n=10){const P=M.P;const m=new Map();for(const i of e.rows){const w=M.pWeek[i];if(w<a||w>b)continue;const k=P[field][i];m.set(k,(m.get(k)||0)+P.min[i]/60);}
+  return[...m.entries()].map(([k,v])=>({k:P.dict[field][k]||'(sin dato)',v})).sort((x,y)=>y.v-x.v).slice(0,n);}
+function hbar(id,items,c,fmt,color){
+  const it=[...items].reverse();
+  chart(id,{...base().o,legend:{show:false},grid:{left:8,right:60,top:8,bottom:8,containLabel:true},
+    tooltip:{...base().o.tooltip,trigger:'item',formatter:p=>`<b>${esc(it[p.dataIndex].k)}</b><br>${fmt(p.value)}${it[p.dataIndex].extra||''}`},
+    xAxis:axisVal(c,{axisLabel:{color:c.muted,formatter:v=>nf(v,v<10?1:0)}}),
+    yAxis:axisCat(c,it.map(x=>x.k),{axisLabel:{color:c.ink2,width:190,overflow:'truncate'}}),
+    series:[{type:'bar',barMaxWidth:16,itemStyle:{color:color||c.s[0],borderRadius:[0,4,4,0]},data:it.map(x=>x.v),label:{show:true,position:'right',color:c.ink2,formatter:p=>fmt(p.value)}}]});
+}
+function renderEquipo(){
+  const M=curModel(),end=state.cut,N=state.win;
+  const rows=allRows(M,end);
+  if(!state.eq||!M.eqs.find(e=>e.name===state.eq)) state.eq=rows[0]?.e.name;
+  $('#eqSel').innerHTML=rows.map(r=>`<option value="${esc(r.e.name)}">${esc(r.e.name)} · 12W ${pct(r.p12)}</option>`).join('');
+  $('#eqSel').value=state.eq;
+  const r=rows.find(x=>x.e.name===state.eq);if(!r)return;const e=r.e;
+  const{c,o}=base();
+  $('#eqPill').innerHTML=pill(r.st)+` <span class="note">${esc(e.tipo)}</span>`;
+  const bar=v=>{const w=Math.min(100,v/(META*3)*100);return `<div class="bar-meta" title="La marca está en 0,5 %"><i style="width:${w}%;background:${v>META?'var(--critical)':'var(--good)'}"></i><i style="left:33.3%;width:2px;background:var(--ink);opacity:.5"></i></div>`;};
+  const hW=n=>{const[a,b]=rng(M,end,n);return sumP(e.pre,a,b);};
+  $('#triad').innerHTML=[['52W',r.p52,52],['12W',r.p12,12],['4W',r.p4,4]].map(([l,v,n])=>`<div><span class="w">${l}</span><span class="p" style="color:${v>META?'var(--critical)':'var(--ink)'}">${pct(v)}</span>${bar(v)}<span class="h">${hrs(hW(n))} perdidas en ${n} semanas</span></div>`).join('');
+  const[a,b]=rng(M,end,N);const hN=sumP(e.pre,a,b),nN=sumP(e.cpre,a,b);let n5=0;for(const i of e.rows){const w=M.pWeek[i];if(w>=a&&w<=b&&M.P.min[i]>=5)n5++;}
+  const s=windowAgg(M,end,N);
+  $('#tilesEq').innerHTML=tile(`Paradas ${N} sem`,nf(nN),`${nf(n5)} de 5 min o más`)+tile('Minutos por parada',nN?nf(hN*60/nN,1):'–','promedio (MTTR aprox.)')+
+    tile('Horas de producción entre paradas',nN?nf(s.ept/nN,1):'–','EPT ÷ paradas (MTBF aprox.)')+tile('Pérdida media últimas 4 sem',nf(r.h4*60,0)+' <small style="font-size:16px;color:var(--muted)">min/sem</small>','');
+  // rolling
+  const from=Math.max(0,end-51);const xs=[],s52=[],s12=[],s4=[],wh=[];
+  for(let w=from;w<=end;w++){xs.push(wk(M.weeks[w]));s52.push(w>=51?kpiEq(M,e,w,52):null);s12.push(w>=11?kpiEq(M,e,w,12):null);s4.push(w>=3?kpiEq(M,e,w,4):null);wh.push(+e.fail[w].toFixed(3));}
+  chart('chRoll',{...o,tooltip:{...o.tooltip,valueFormatter:v=>v==null?'–':pct(v)},xAxis:axisCat(c,xs,{boundaryGap:false}),yAxis:axisVal(c,{axisLabel:{color:c.muted,formatter:pctFmt}}),
+    series:[{name:'52W',type:'line',data:s52,showSymbol:false,lineStyle:{width:2},itemStyle:{color:c.s[0]},connectNulls:false},
+      {name:'12W',type:'line',data:s12,showSymbol:false,lineStyle:{width:2},itemStyle:{color:c.s[1]},markLine:metaLine(c)},
+      {name:'4W',type:'line',data:s4,showSymbol:false,lineStyle:{width:1.5,type:'dashed'},itemStyle:{color:c.s[2]}}]});
+  chart('chWeekEq',{...o,legend:{show:false},tooltip:{...o.tooltip,valueFormatter:v=>hrs(v)},xAxis:axisCat(c,xs),yAxis:axisVal(c,{axisLabel:{color:c.muted,formatter:v=>nf(v,v<10?1:0)+' h'}}),
+    series:[{name:'Horas de falla',type:'bar',data:wh,barMaxWidth:14,itemStyle:{color:c.s[0],borderRadius:[4,4,0,0]}}]});
+  // projection
+  if(state.projMin==null||state._projEq!==e.name){state.projMin=Math.round(r.h4*60);state._projEq=e.name;}
+  $('#projMin').value=state.projMin;
+  $('#projNote').textContent=`promedio real últimas 4 semanas: ${nf(r.h4*60,0)} min/sem`;
+  renderProj(M,e,end,r);
+  // breakdowns
+  $('#scHint').textContent=$('#crHint').textContent=`horas · ${N} sem`;
+  hbar('chSc',topBy(M,e,a,b,'sc',10),c,v=>hrs(v),c.s[0]);
+  hbar('chCr',topBy(M,e,a,b,'causa',10),c,v=>hrs(v),c.s[1]);
+  // clasificación
+  const cl=new Map();let totN=0,totM=0;for(const i of e.rows){const w=M.pWeek[i];if(w<a||w>b)continue;const k=M.P.dict.clas[M.P.clas[i]]||'Sin clasificar';const x=cl.get(k)||{n:0,m:0};x.n++;x.m+=M.P.min[i];cl.set(k,x);totN++;totM+=M.P.min[i];}
+  const order=['Menor a 5 minutos','Falla menor','Falla crónica','Falla mayor'];
+  const keys=[...cl.keys()].sort((x,y)=>(order.indexOf(x)+99*(order.indexOf(x)<0))-(order.indexOf(y)+99*(order.indexOf(y)<0)));
+  stack100('chClas',keys,[['Eventos',k=>cl.get(k).n/(totN||1)],['Minutos',k=>cl.get(k).m/(totM||1)]],c,k=>{const x=cl.get(k);return ` · ${nf(x.n)} eventos · ${nf(x.m,0)} min`;});
+  const ap=new Map();let apT=0;for(const i of e.rows){const w=M.pWeek[i];if(w<a||w>b)continue;const k=M.P.dict.api[M.P.api[i]]||'Sin dato';const x=ap.get(k)||{n:0,m:0};x.n++;x.m+=M.P.min[i];ap.set(k,x);apT+=M.P.min[i];}
+  const apk=[...ap.keys()].sort((x,y)=>ap.get(y).m-ap.get(x).m);let apN=0;ap.forEach(v=>apN+=v.n);
+  stack100('chApi',apk,[['Eventos',k=>ap.get(k).n/(apN||1)],['Minutos',k=>ap.get(k).m/(apT||1)]],c,k=>{const x=ap.get(k);return ` · ${nf(x.n)} eventos · ${nf(x.m,0)} min`;});
+  // bitácora
+  const P=M.P;const bit=e.rows.filter(i=>{const w=M.pWeek[i];return w>=a&&w<=b&&P.min[i]>=5;}).sort((x,y)=>P.day[y]-P.day[x]||P.hini[y]-P.hini[x]);
+  $('#bitHint').textContent=`${bit.length} eventos en ${N} semanas`;
+  const hh=h=>h<0?'':String(Math.floor(h)).padStart(2,'0')+':'+String(Math.round((h%1)*60)).padStart(2,'0');
+  $('#bitTable').innerHTML=`<thead><tr><th>Fecha</th><th>Turno</th><th>Subconjunto</th><th class="n">Min</th><th>Causa raíz</th><th>Detalle</th><th>Acción</th></tr></thead><tbody>${bit.slice(0,200).map(i=>`<tr><td style="white-space:nowrap">${dstr(P.day[i])} ${hh(P.hini[i])}</td><td style="white-space:nowrap">${esc(P.dict.turno[P.turno[i]])}</td><td>${esc(P.dict.sc[P.sc[i]])}</td><td class="n">${nf(P.min[i],1)}</td><td>${esc(P.dict.causa[P.causa[i]])}</td><td style="min-width:260px">${esc(P.dict.det[P.det[i]])}</td><td style="min-width:200px">${esc(P.dict.acc[P.acc[i]])}</td></tr>`).join('')||'<tr><td colspan="7" class="neutral">Sin fallas de 5 minutos o más en la ventana.</td></tr>'}</tbody>`;
+}
+function stack100(id,keys,bars,c,extra){
+  const{o}=base();
+  chart(id,{...o,grid:{left:8,right:16,top:40,bottom:8,containLabel:true},tooltip:{...o.tooltip,trigger:'item',formatter:p=>`<b>${esc(p.seriesName)}</b><br>${p.name}: ${pct(p.value,1)}${extra(p.seriesName)}`},
+    xAxis:axisVal(c,{max:1,axisLabel:{color:c.muted,formatter:v=>nf(v*100,0)+' %'}}),yAxis:axisCat(c,bars.map(b=>b[0]),{inverse:true,axisLabel:{color:c.ink2}}),
+    series:keys.map((k,i)=>({name:k,type:'bar',stack:'t',barWidth:22,itemStyle:{color:c.s[i%8],borderColor:c.surface,borderWidth:1},data:bars.map(b=>b[1](k)),
+      label:{show:true,formatter:p=>p.value>=0.08?nf(p.value*100,0)+' %':'',color:'#fff',fontWeight:600}}))});
+}
+function renderProj(M,e,end,r){
+  const{c,o}=base();const h=(+$('#projMin').value||0)/60;
+  const K=16;const sc=[['Sin nuevas fallas',0,c.s[2]],[`${nf(h*60,0)} min/sem (tu estimado)`,h,c.s[1]],[`Promedio 4W (${nf(r.h4*60,0)} min/sem)`,r.h4,c.s[6]]];
+  const hist=[];const xs=[];for(let w=Math.max(11,end-11);w<=end;w++){xs.push(wk(M.weeks[w]));hist.push(kpiEq(M,e,w,12));}
+  const nh=xs.length;for(let k=1;k<=K;k++)xs.push(wk(M.weeks[end]+7*k));
+  const ser=[{name:'12W real',type:'line',data:[...hist,...Array(K).fill(null)],showSymbol:false,lineStyle:{width:2.5},itemStyle:{color:c.s[0]},markLine:metaLine(c)}];
+  for(const[nm,hv,col] of sc){const p=projSeries(M,e,end,hv,K);ser.push({name:nm,type:'line',data:[...Array(nh-1).fill(null),hist[nh-1],...p],showSymbol:false,lineStyle:{width:2,type:'dashed'},itemStyle:{color:col}});}
+  chart('chProj',{...o,tooltip:{...o.tooltip,valueFormatter:v=>v==null?'–':pct(v)},xAxis:axisCat(c,xs,{boundaryGap:false}),yAxis:axisVal(c,{min:0,axisLabel:{color:c.muted,formatter:pctFmt}}),series:ser,
+    graphic:[]});
+  const k=projReturn(M,e,end,h);const d4=den4(M,end);
+  let txt;
+  if(k===0) txt=`<b>${esc(e.name)}</b> ya está en 12W ≤ 0,5 % (${pct(r.p12)}). Para mantenerlo, no debe pasar de unos <b>${nf(META*d4*60,0)} min/sem</b> de falla.`;
+  else if(k==null) txt=`Perdiendo ${nf(h*60,0)} min/sem, <b>${esc(e.name)}</b> no vuelve a la meta: el 12W se estabiliza en ${pct(h/(d4||1))}. Para cumplir necesita bajar a menos de <b>${nf(META*d4*60,0)} min/sem</b>.`;
+  else txt=`Perdiendo ${nf(h*60,0)} min/sem, <b>${esc(e.name)}</b> vuelve a 12W ≤ 0,5 % en <b>${k} semana${k>1?'s':''}</b>: <b>${wk(M.weeks[end]+7*k,true)}</b> (semana del ${dstr(M.weeks[end]+7*k)}).`;
+  $('#projAns').innerHTML=txt;
+}
+$('#eqSel').addEventListener('change',e=>{state.eq=e.target.value;renderEquipo();});
+$('#projMin').addEventListener('input',()=>{const M=curModel();if(!M)return;state.projMin=+$('#projMin').value||0;const e=M.eqs.find(x=>x.name===state.eq);if(e)renderProj(M,e,state.cut,eqRow(M,e,state.cut));});
+
+/* =====================================================================
+   12) VISTA: TIEMPOS DE LÍNEA
+   ===================================================================== */
+function renderLinea(){
+  const M=curModel(),end=state.cut,N=state.win;const{c,o}=base();
+  const s=windowAgg(M,end,N);const sp=end-N>=0?windowAgg(M,end-N,N):null;
+  const t=(k,lab)=>{const d=delta(s[k],sp?.[k],true,v=>nf(v*100,1)+' pts');return tile(lab+` ${N} sem`,pct(s[k],1),d[0],d[1]);};
+  $('#tilesLin').innerHTML=t('lef','LEF')+t('oee','OEE')+t('gly','GLY')+t('oae','OAE')+tile('Producción',nf(s.hl,0)+' <small style="font-size:16px;color:var(--muted)">hL</small>',`${nf(s.hl/s.n,0)} hL por semana`)+tile('Cambios de formato',nf(s.nchg),hrs(s.chg)+' en cambios');
+  const xs=M.weeks.slice(0,end+1).map(m=>wk(m));const ind=weeklyInd(M).slice(0,end+1);
+  const[a,b]=rng(M,end,N);
+  const shade={silent:true,itemStyle:{color:c.accent,opacity:.08},data:[[{xAxis:xs[a]},{xAxis:xs[b]}]]};
+  chart('chInd',{...o,grid:{...o.grid,right:28},tooltip:{...o.tooltip,valueFormatter:v=>v==null?'–':pct(v,1)},xAxis:axisCat(c,xs,{boundaryGap:false}),yAxis:axisVal(c,{min:v=>Math.max(0,Math.floor(v.min*10)/10),max:1,axisLabel:{color:c.muted,formatter:v=>nf(v*100,0)+' %'}}),
+    series:[['LEF','lef'],['OEE','oee'],['GLY','gly'],['OAE','oae']].map(([n,k],i)=>({name:n,type:'line',data:ind.map(x=>x[k]),showSymbol:false,lineStyle:{width:2},itemStyle:{color:c.s[i]},markArea:i===0?shade:undefined}))});
+  const parts=[['EPT (producción efectiva)','ept'],['Causas internas (fallas)','ic'],['Causas externas','ec'],['Actividades planeadas','dpa'],['No programado','nst']];
+  const W=M.W;
+  chart('chHours',{...o,tooltip:{...o.tooltip,valueFormatter:v=>hrs(v)},grid:{...o.grid,top:56},xAxis:axisCat(c,xs),yAxis:axisVal(c,{axisLabel:{color:c.muted,formatter:v=>v+' h'}}),
+    series:parts.map(([n,k],i)=>({name:n,type:'bar',stack:'h',barMaxWidth:18,data:[...W[k]].slice(0,end+1).map(v=>+v.toFixed(2)),itemStyle:{color:c.s[i],borderColor:c.surface,borderWidth:1}}))});
+  chart('chHl',{...o,legend:{show:false},tooltip:{...o.tooltip,valueFormatter:v=>nf(v,0)+' hL'},xAxis:axisCat(c,xs),yAxis:axisVal(c,{axisLabel:{color:c.muted,formatter:v=>nf(v/1000,0)+' mil'}}),
+    series:[{name:'Producción',type:'bar',barMaxWidth:14,data:[...W.hl].slice(0,end+1).map(v=>Math.round(v)),itemStyle:{color:c.s[0],borderRadius:[4,4,0,0]},markArea:shade}]});
+  // turno
+  const T=M.T;const tt={};for(let i=0;i<T.n;i++){const w=M.tWeek[i];if(w<a||w>b)continue;const k=T.dict.turno[T.turno[i]];tt[k]=tt[k]||{e:0,ic:0,hl:0};tt[k].e+=T.ept[i];tt[k].ic+=T.ic[i];tt[k].hl+=T.hl[i];}
+  const tk=Object.keys(tt).sort();$('#turHint').textContent=`${N} sem`;
+  chart('chTurno',{...o,legend:{show:false},grid:{left:8,right:60,top:8,bottom:8,containLabel:true},tooltip:{...o.tooltip,trigger:'item',formatter:p=>{const x=tt[tk[p.dataIndex]];return `<b>${esc(tk[p.dataIndex])}</b><br>LEF ${pct(p.value,1)}<br>Fallas: ${hrs(x.ic)}<br>Producción: ${nf(x.hl,0)} hL`;}},
+    xAxis:axisVal(c,{min:v=>Math.max(0,Math.floor(v.min*20)/20),max:v=>Math.min(1,Math.ceil(v.max*20)/20),splitNumber:4,axisLabel:{color:c.muted,formatter:v=>nf(v*100,0)+' %'}}),yAxis:axisCat(c,tk,{inverse:true,axisLabel:{color:c.ink2}}),
+    series:[{type:'bar',barWidth:18,data:tk.map(k=>tt[k].e+tt[k].ic>0?tt[k].e/(tt[k].e+tt[k].ic):null),itemStyle:{color:c.s[0],borderRadius:[0,4,4,0]},label:{show:true,position:'right',color:c.ink2,formatter:p=>pct(p.value,1)}}]});
+  chart('chChg',{...o,legend:{show:false},tooltip:{...o.tooltip},xAxis:axisCat(c,xs),yAxis:axisVal(c,{minInterval:1}),
+    series:[{name:'Cambios',type:'bar',barMaxWidth:14,data:[...W.nchg].slice(0,end+1),itemStyle:{color:c.s[3],borderRadius:[4,4,0,0]}}]});
+}
+
+/* =====================================================================
+   13) VISTA: PARADAS
+   ===================================================================== */
+function renderParadas(){
+  const M=curModel(),end=state.cut,N=state.win;const{c,o}=base();const P=M.P;const[a,b]=rng(M,end,N);
+  ['#tpHint','#crlHint','#hhHint'].forEach(s=>$(s).textContent=`${N} sem`);
+  // tipo de parada coloreado por categoría
+  const cats=P.dict.parada.map((p,i)=>i).filter(i=>i!==M.nstCode);
+  const catName=i=>PARADA_ES[normS(P.dict.parada[i])]||P.dict.parada[i];
+  const m=new Map();
+  for(let i=0;i<P.n;i++){const w=M.pWeek[i];if(w<a||w>b||P.parada[i]===M.nstCode)continue;const k=P.parada[i]+'|'+P.tipo[i];m.set(k,(m.get(k)||0)+P.min[i]/60);}
+  const items=[...m.entries()].map(([k,v])=>{const[pc,tp]=k.split('|').map(Number);return{pc,tp:P.dict.tipo[tp]||'(sin tipo)',v};}).sort((x,y)=>y.v-x.v).slice(0,14).reverse();
+  const catOrder=[M.icCode,...cats.filter(i=>i!==M.icCode)];const colCat=i=>c.s[Math.max(0,catOrder.indexOf(i))%8];
+  chart('chTipo',{...o,grid:{left:8,right:56,top:36,bottom:8,containLabel:true},legend:{...o.legend,data:catOrder.filter(i=>items.some(x=>x.pc===i)).map(catName)},
+    tooltip:{...o.tooltip,trigger:'item',formatter:p=>`<b>${esc(items[p.dataIndex].tp)}</b><br>${esc(catName(items[p.dataIndex].pc))}<br>${hrs(p.value)}`},
+    xAxis:axisVal(c,{axisLabel:{color:c.muted,formatter:v=>nf(v,0)+' h'}}),yAxis:axisCat(c,items.map(x=>x.tp),{axisLabel:{color:c.ink2,width:200,overflow:'truncate'}}),
+    series:catOrder.map(ci=>({name:catName(ci),type:'bar',stack:'x',barMaxWidth:16,itemStyle:{color:colCat(ci),borderRadius:[0,4,4,0]},data:items.map(x=>x.pc===ci?+x.v.toFixed(2):null),
+      label:{show:true,position:'right',color:c.ink2,formatter:p=>p.value?hrs(p.value):''}}))});
+  // causa raíz línea
+  const cr=new Map();for(const e of M.eqs)for(const i of e.rows){const w=M.pWeek[i];if(w<a||w>b)continue;const k=P.dict.causa[P.causa[i]]||'(sin causa raíz)';cr.set(k,(cr.get(k)||0)+P.min[i]/60);}
+  hbar('chCrl',[...cr.entries()].map(([k,v])=>({k,v})).sort((x,y)=>y.v-x.v).slice(0,12),c,v=>hrs(v),c.s[1]);
+  // heatmap equipo × semana
+  const hf=Math.max(0,end-25);const wks=[];for(let w=hf;w<=end;w++)wks.push(w);
+  const topE=[...M.eqs].map(e=>({e,h:sumP(e.pre,hf,end)})).sort((x,y)=>y.h-x.h).slice(0,15).filter(x=>x.h>0);
+  const data=[];let mx=0;topE.forEach((x,yi)=>wks.forEach((w,xi)=>{const v=+x.e.fail[w].toFixed(2);mx=Math.max(mx,v);data.push([xi,yi,v||'-']);}));
+  chart('chHeat',{...o,legend:{show:false},grid:{left:8,right:16,top:8,bottom:56,containLabel:true},
+    tooltip:{...o.tooltip,trigger:'item',axisPointer:undefined,formatter:p=>`<b>${esc(topE[p.value[1]].e.name)}</b><br>${wk(M.weeks[wks[p.value[0]]],true)}: ${p.value[2]==='-'?'sin fallas':hrs(p.value[2])}`},
+    xAxis:axisCat(c,wks.map(w=>wk(M.weeks[w])),{splitArea:{show:false}}),yAxis:axisCat(c,topE.map(x=>x.e.name),{inverse:true,axisLabel:{color:c.ink2,width:190,overflow:'truncate'}}),
+    visualMap:{min:0,max:mx||1,calculable:false,orient:'horizontal',left:'center',bottom:0,itemHeight:180,itemWidth:10,text:[hrs(mx),'0 h'],textStyle:{color:c.muted},inRange:{color:c.seq}},
+    series:[{type:'heatmap',data,itemStyle:{borderColor:c.surface,borderWidth:2,borderRadius:3},emphasis:{itemStyle:{borderColor:c.ink,borderWidth:1}}}]},
+    p=>{const x=topE[p.value[1]];if(x){state.eq=x.e.name;setView('equipo');}});
+  // hora × día
+  const dias=['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];const g=Array.from({length:7},()=>new Array(24).fill(0));let gm=0;
+  for(const e of M.eqs)for(const i of e.rows){const w=M.pWeek[i];if(w<a||w>b||P.hini[i]<0)continue;const d=(P.day[i]+3)%7;const h=Math.floor(P.hini[i])%24;g[d][h]++;}
+  const hd=[];g.forEach((row,d)=>row.forEach((v,h)=>{gm=Math.max(gm,v);hd.push([h,d,v||'-']);}));
+  chart('chHour',{...o,legend:{show:false},grid:{left:8,right:16,top:8,bottom:56,containLabel:true},tooltip:{...o.tooltip,trigger:'item',formatter:p=>`${dias[p.value[1]]} ${String(p.value[0]).padStart(2,'0')}:00–${String(p.value[0]).padStart(2,'0')}:59<br><b>${p.value[2]==='-'?0:nf(p.value[2])}</b> fallas`},
+    xAxis:axisCat(c,Array.from({length:24},(_,h)=>String(h).padStart(2,'0'))),yAxis:axisCat(c,dias,{inverse:true}),
+    visualMap:{min:0,max:gm||1,orient:'horizontal',left:'center',bottom:0,itemHeight:180,itemWidth:10,text:[nf(gm),'0'],textStyle:{color:c.muted},inRange:{color:c.seq}},
+    series:[{type:'heatmap',data:hd,itemStyle:{borderColor:c.surface,borderWidth:1.5,borderRadius:2}}]});
+  // microparadas semanales
+  const mc=new Array(end+1).fill(0),mm=new Array(end+1).fill(0);
+  for(const e of M.eqs)for(const i of e.rows){const w=M.pWeek[i];if(w<0||w>end||P.clas[i]!==M.microCode)continue;mc[w]++;mm[w]+=P.min[i];}
+  const xs=M.weeks.slice(0,end+1).map(m=>wk(m));
+  chart('chMicro',{...o,legend:{show:false},tooltip:{...o.tooltip,formatter:ps=>{const i=ps[0].dataIndex;return `<b>${xs[i]}</b><br>${nf(mc[i])} microparadas<br>${nf(mm[i],0)} min en total`;}},
+    xAxis:axisCat(c,xs,{boundaryGap:false}),yAxis:axisVal(c,{axisLabel:{color:c.muted,formatter:v=>nf(v)}}),
+    series:[{name:'Microparadas',type:'line',data:mc,showSymbol:false,lineStyle:{width:2},itemStyle:{color:c.s[0]},areaStyle:{color:c.s[0],opacity:.12},markArea:{silent:true,itemStyle:{color:c.accent,opacity:.08},data:[[{xAxis:xs[a]},{xAxis:xs[b]}]]}}]});
+}
+
+/* =====================================================================
+   14) VISTA: COMPARAR LÍNEAS
+   ===================================================================== */
+function renderComparar(){
+  const loaded=LINEAS.filter(l=>models[l]);const el=$('#v-comparar');
+  let es=el.querySelector('.empty-state');
+  if(loaded.length<2){
+    if(!es){es=document.createElement('div');es.className='panel empty-state';el.prepend(es);}
+    es.innerHTML=`<h3>Carga al menos dos líneas para comparar</h3><p>${loaded.length?`Hasta ahora solo está ${loaded[0]}.`:'Aún no hay líneas cargadas.'} Los archivos L5, L7, LE7, L8 y L9 tienen la misma estructura, así que se comparan directamente.</p><button class="btn primary" type="button">Cargar archivos</button>`;
+    es.querySelector('button').onclick=()=>setView('cargar');
+    for(const c of el.children)if(c!==es)c.hidden=true;return;}
+  if(es)es.remove();for(const c of el.children)c.hidden=false;
+  const{c,o}=base();const N=state.win;const ref=curModel()||models[loaded[0]];const refMon=ref.weeks[state.cut??ref.nW-1];
+  const colL=l=>c.s[LINEAS.indexOf(l)%8];
+  const info=loaded.map(l=>{const M=models[l];let end=M.nW-1;while(end>0&&M.weeks[end]>refMon)end--;const rows=allRows(M,end);const s=windowAgg(M,end,N);const[a,b]=rng(M,end,N);const ms=microStats(M,a,b);
+    return{l,M,end,rows,s,ms,over:rows.filter(r=>r.p12>META).length,ok:rows.filter(r=>r.st==='ok').length,worst:rows[0]};});
+  $('#cmpHint').textContent=`ventana ${N} sem hasta ${wk(refMon,true)}`;
+  $('#cmpTable').innerHTML=`<thead><tr><th>Línea</th><th>Corte</th><th class="n">LEF</th><th class="n">OEE</th><th class="n">Horas fallas</th><th class="n">Sobre meta 12W</th><th class="n">Cumplen ATO</th><th>Peor equipo 12W</th><th class="n">Microparadas</th></tr></thead><tbody>${info.map(x=>`<tr class="click" data-l="${x.l}"><td><b style="font-family:var(--f-display);font-size:18px"><i style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${colL(x.l)};margin-right:6px"></i>${x.l}</b></td><td>${wk(x.M.weeks[x.end])}</td><td class="n">${pct(x.s.lef,1)}</td><td class="n">${pct(x.s.oee,1)}</td><td class="n">${hrs(x.s.ic)}</td><td class="n">${x.over} / ${x.rows.length}</td><td class="n">${x.ok}</td><td>${x.worst?`${esc(x.worst.e.name)} · <span class="${x.worst.p12>META?'up-bad':''}">${pct(x.worst.p12)}</span>`:'–'}</td><td class="n">${pct(x.ms.n?x.ms.nm/x.ms.n:null,0)}</td></tr>`).join('')}</tbody>`;
+  // LEF weekly per line on union of weeks
+  const allW=[...new Set(info.flatMap(x=>x.M.weeks.slice(0,x.end+1)))].sort((a,b)=>a-b).slice(-52);
+  chart('chCmpLef',{...o,tooltip:{...o.tooltip,valueFormatter:v=>v==null?'–':pct(v,1)},xAxis:axisCat(c,allW.map(m=>wk(m)),{boundaryGap:false}),yAxis:axisVal(c,{min:v=>Math.max(0,Math.floor(v.min*10)/10),max:1,axisLabel:{color:c.muted,formatter:v=>nf(v*100,0)+' %'}}),
+    series:info.map(x=>{const ind=weeklyInd(x.M);return{name:x.l,type:'line',showSymbol:false,lineStyle:{width:2},itemStyle:{color:colL(x.l)},data:allW.map(m=>{const i=x.M.wIdx.get(m);return i==null||i>x.end?null:ind[i].lef;})};})});
+  chart('chCmpOver',{...o,tooltip:{...o.tooltip,trigger:'axis',axisPointer:{type:'shadow'}},xAxis:axisCat(c,info.map(x=>x.l)),yAxis:axisVal(c,{minInterval:1}),
+    series:[{name:'Sobre meta 12W',type:'bar',barMaxWidth:40,data:info.map(x=>({value:x.over,itemStyle:{color:colL(x.l),borderRadius:[4,4,0,0]}})),label:{show:true,position:'top',color:c.ink2,formatter:p=>`${p.value} de ${info[p.dataIndex].rows.length}`}}]});
+  // por tipo de equipo
+  const tipos=new Map();
+  for(const x of info){const[a,b]=rng(x.M,x.end,12);const d=sumP(x.M.denPre,a,b);const agg={};for(const r of x.rows){agg[r.e.tipo]=(agg[r.e.tipo]||0)+r.h12;}
+    for(const k in agg){if(!tipos.has(k))tipos.set(k,{});tipos.get(k)[x.l]=d>0?agg[k]/d:0;}}
+  const tk=[...tipos.keys()].map(k=>({k,m:Math.max(...Object.values(tipos.get(k)))})).sort((a,b)=>b.m-a.m).slice(0,10).map(x=>x.k).reverse();
+  chart('chCmpTipo',{...o,grid:{left:8,right:24,top:36,bottom:8,containLabel:true},tooltip:{...o.tooltip,axisPointer:{type:'shadow'},valueFormatter:v=>v==null?'–':pct(v)},
+    xAxis:axisVal(c,{axisLabel:{color:c.muted,formatter:pctFmt}}),yAxis:axisCat(c,tk,{axisLabel:{color:c.ink2,width:190,overflow:'truncate'}}),
+    series:info.map(x=>({name:x.l,type:'bar',barMaxWidth:10,barGap:'20%',itemStyle:{color:colL(x.l),borderRadius:[0,3,3,0]},data:tk.map(k=>tipos.get(k)[x.l]??null)}))});
+}
+$('#cmpTable').addEventListener('click',e=>{const tr=e.target.closest('tr[data-l]');if(tr){state.slot=tr.dataset.l;state.cut=null;afterDataChange();setView('resumen');}});
+
+/* =====================================================================
+   15) VISTA: CARGAR
+   ===================================================================== */
+function renderSlots(){
+  $('#slots').innerHTML=LINEAS.map(l=>{const M=models[l],m=meta[l]||{};
+    const body=m.loading?`<div class="meta"><span id="st-${l}">${esc(m.step||'Leyendo')}…</span><span>${esc(m.file||'')}</span></div><div class="prog"><i id="pg-${l}" style="width:${Math.round((m.prog||0)*100)}%"></i></div>`
+      :M?`<div class="meta"><div>${esc(m.file||'')}</div><div><span>Datos:</span> ${dstr(M.weeks[0])} – ${dstr(M.weeks[M.nW-1]+6)}</div><div><span>Semanas:</span> ${M.nW} · <span>equipos con fallas:</span> ${M.eqs.length}</div><div><span>Filas:</span> ${nf(m.rowsP)} paradas · ${nf(m.rowsT)} turnos</div>${m.loadedAt?`<div><span>Cargado:</span> ${new Date(m.loadedAt).toLocaleString('es-CO',{dateStyle:'medium',timeStyle:'short'})}</div>`:''}</div>`
+      :`<div class="meta"><span>Arrastra aquí el archivo ${l} MED o usa el botón.</span></div>`;
+    return `<div class="slot ${M?'loaded':''}" data-slot="${l}"><div class="sl"><b>${l}</b>${M?pill('ok').replace('Cumple','Cargado'):''}</div>${body}${m.err?`<div class="err">${esc(m.err)}</div>`:''}
+      <div class="act"><button class="btn ${M?'':'primary'}" type="button" data-pick="${l}" ${m.loading?'disabled':''}>${M?'Reemplazar':'Subir '+l+' MED'}</button>${M?`<button class="btn ghost" type="button" data-see="${l}">Ver</button><button class="btn ghost" type="button" data-del="${l}">Quitar</button>`:''}</div>
+      <input type="file" accept=".xlsx,.xlsm" hidden data-input="${l}"></div>`;}).join('');
+}
+function updateSlotProg(l){const m=meta[l];const p=document.getElementById('pg-'+l),s=document.getElementById('st-'+l);if(p)p.style.width=Math.round(m.prog*100)+'%';if(s)s.textContent=m.step+'… '+Math.round(m.prog*100)+' %';renderPlates();}
+$('#slots').addEventListener('click',e=>{
+  const pk=e.target.closest('[data-pick]');if(pk){$(`[data-input="${pk.dataset.pick}"]`).click();return;}
+  const se=e.target.closest('[data-see]');if(se){state.slot=se.dataset.see;state.cut=null;afterDataChange();setView('resumen');return;}
+  const de=e.target.closest('[data-del]');if(de){const l=de.dataset.del;delete models[l];delete meta[l];idbDel(l);if(state.slot===l)state.slot=LINEAS.find(x=>models[x])||null;state.cut=null;afterDataChange();toast(`${l} quitada`);}
+});
+$('#slots').addEventListener('change',e=>{const inp=e.target.closest('[data-input]');if(inp&&inp.files.length){handleFiles(inp.files,inp.dataset.input);inp.value='';}});
+for(const ev of ['dragenter','dragover']){
+  $('#slots').addEventListener(ev,e=>{const s=e.target.closest('.slot');if(!s)return;e.preventDefault();s.classList.add('drag');});
+  $('#dropAll').addEventListener(ev,e=>{e.preventDefault();$('#dropAll').classList.add('drag');});
+}
+$('#slots').addEventListener('dragleave',e=>{const s=e.target.closest('.slot');if(s&&!s.contains(e.relatedTarget))s.classList.remove('drag');});
+$('#slots').addEventListener('drop',e=>{const s=e.target.closest('.slot');if(!s)return;e.preventDefault();s.classList.remove('drag');handleFiles(e.dataTransfer.files,s.dataset.slot);});
+$('#dropAll').addEventListener('dragleave',e=>{if(!$('#dropAll').contains(e.relatedTarget))$('#dropAll').classList.remove('drag');});
+$('#dropAll').addEventListener('drop',e=>{e.preventDefault();$('#dropAll').classList.remove('drag');handleFiles(e.dataTransfer.files);});
+$('#pickAll').addEventListener('click',()=>$('#fileAll').click());
+$('#fileAll').addEventListener('change',e=>{handleFiles(e.target.files);e.target.value='';});
+window.addEventListener('dragover',e=>e.preventDefault());window.addEventListener('drop',e=>e.preventDefault());
+let clearArm=0;
+$('#clearAll').addEventListener('click',async e=>{
+  if(Date.now()-clearArm>4000){clearArm=Date.now();e.target.textContent='Clic otra vez para confirmar';setTimeout(()=>e.target.textContent='Borrar datos guardados',4000);return;}
+  await idbDel(null);for(const k in models)delete models[k];for(const k in meta)delete meta[k];state.slot=null;state.cut=null;e.target.textContent='Borrar datos guardados';afterDataChange();setView('cargar');toast('Datos borrados de este navegador');
+});
+
+/* =====================================================================
+   16) ARRANQUE
+   ===================================================================== */
+const rerender=()=>{if(state.view!=='cargar')renderView();};
+try{matchMedia('(prefers-color-scheme: dark)').addEventListener('change',rerender);}catch(e){}
+new MutationObserver(rerender).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+(async function init(){
+  const pr=loadPrefs();if([4,12,52].includes(pr.win))state.win=pr.win;
+  renderPlates();renderSlots();
+  const saved=await idbAll();
+  for(const l of LINEAS){const s=saved[l];if(!s||!s.raw)continue;try{models[l]=buildModel(l,s.raw);meta[l]=s.meta||{};}catch(e){console.warn('Cache inválida',l,e);}}
+  state.slot=(pr.slot&&models[pr.slot])?pr.slot:(LINEAS.find(l=>models[l])||null);
+  fillCut();renderPlates();
+  const h=(location.hash||'').slice(1);const valid=['resumen','equipos','equipo','linea','paradas','comparar','cargar'];
+  setView(valid.includes(h)?h:(state.slot?'resumen':'cargar'));
+  if(typeof echarts==='undefined') toast('No se pudo cargar la librería de gráficos. Revisa tu conexión a internet.');
+})();
+</script>
+</body>
+</html>
