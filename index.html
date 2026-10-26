@@ -345,7 +345,10 @@ footer{padding-block:18px 32px;border-top:1px solid var(--line);font-size:12.5px
 </main>
 <div class="wrap"><footer>Confiabilidad – Equipos Envase · Los datos se procesan localmente en tu navegador. <button class="btn ghost" id="clearAll" type="button" style="min-height:28px;padding:2px 10px;margin-left:8px">Borrar datos guardados</button></footer></div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.1/echarts.min.js"></script>
+<!-- Librería de gráficos: copia local primero; si falla, CDN de respaldo -->
+<script src="vendor/echarts.min.js"></script>
+<script>if(!window.echarts)document.write('<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"><\/script>');</script>
+<script>if(!window.echarts)document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.1/echarts.min.js"><\/script>');</script>
 <script>
 /* =====================================================================
    1) LECTOR DE EXCEL (se ejecuta en un Web Worker)
@@ -749,7 +752,8 @@ function renderView(){
 const charts=new Map();
 const ro=new ResizeObserver(entries=>{for(const en of entries){const c=echarts.getInstanceByDom(en.target);if(c)c.resize();}});
 function chart(id,opt,onClick){
-  const el=document.getElementById(id);if(!el||typeof echarts==='undefined')return;
+  const el=document.getElementById(id);if(!el)return;
+  if(typeof echarts==='undefined'){el.innerHTML='<p class="note" style="padding:24px 8px">No se pudo cargar la librería de gráficos. Revisa que la carpeta <b>vendor</b> esté publicada junto a index.html, o que el navegador no esté bloqueando scripts.</p>';return;}
   let c=echarts.getInstanceByDom(el);if(!c){c=echarts.init(el,null,{renderer:'canvas'});ro.observe(el);charts.set(id,c);}
   c.off('click');if(onClick)c.on('click',onClick);
   c.setOption(opt,true);

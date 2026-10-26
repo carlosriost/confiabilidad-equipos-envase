@@ -49,4 +49,6 @@ const LINEAS = ['L5','L7','LE7','L8','L9']; // líneas disponibles
 const META = 0.005;                          // meta 52-12-4 (0,5 %)
 ```
 
+La librería de gráficos (ECharts 5.5.1, licencia Apache 2.0) va incluida en `vendor/`, así que el tablero no depende de CDNs externos. Publica siempre la carpeta `vendor` junto a `index.html`.
+
 Requiere un navegador actualizado (Chrome, Edge, Firefox o Safari recientes).
