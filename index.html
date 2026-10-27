@@ -158,7 +158,7 @@ td.over{color:var(--critical);font-weight:600}
 .spark{display:block}
 
 /* upload */
-.slots{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px}
+.slots-old{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px}
 .slot{background:var(--surface);border:1.5px dashed var(--line);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:10px;min-height:210px;position:relative;transition:border-color .15s,background .15s}
 .slot.drag{border-color:var(--accent);background:var(--accent-soft)}
 .slot.loaded{border-style:solid}
@@ -183,6 +183,25 @@ td.over{color:var(--critical);font-weight:600}
 .proj-ctl{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;margin:6px 0 4px;font-size:14px}
 .proj-ans{font-size:15px;margin:8px 0 0;padding:10px 12px;border-radius:8px;background:var(--surface-2)}
 .proj-ans b{font-weight:600}
+/* chat */
+.chat{display:flex;flex-direction:column;gap:12px}
+.chat-log{display:flex;flex-direction:column;gap:14px;min-height:240px;max-height:min(70vh,900px);overflow-y:auto;padding:4px 2px}
+.msg{max-width:100%;min-width:0}
+.msg.q{align-self:flex-end;background:var(--ink);color:var(--surface);padding:9px 14px;border-radius:14px 14px 4px 14px;max-width:min(80%,640px);font-weight:500}
+.msg.a{align-self:stretch;border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:var(--surface)}
+.msg.a .ans{font-size:15px;line-height:1.55;max-width:90ch}
+.msg.a .ans b{font-weight:600}
+.why{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.why span{font-size:12px;background:var(--surface-2);border-radius:999px;padding:2px 10px;color:var(--ink-2)}
+.why b{font-weight:600;color:var(--muted)}
+.achart{margin-top:10px}
+table.narrow,table.atable.narrow{min-width:0}
+.atable td{font-size:13px}
+.chat-form{display:flex;gap:8px}
+.chat-form input{flex:1;min-width:0;min-height:44px;font-size:15px}
+.chat-sug{display:flex;flex-wrap:wrap;gap:6px}
+.chat-sug.inline{margin-top:10px}
+.chat-sug .chipf{font-weight:500;text-align:left}
 footer{padding-block:18px 32px;border-top:1px solid var(--line);font-size:12.5px;color:var(--muted)}
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--surface);padding:10px 16px;border-radius:8px;font-size:14px;z-index:20;box-shadow:var(--shadow)}
 @media (max-width:700px){.bar{position:static}.ctx{margin-left:0}}
@@ -203,12 +222,13 @@ footer{padding-block:18px 32px;border-top:1px solid var(--line);font-size:12.5px
   <div class="wrap">
     <div class="tabs" role="tablist" id="tabs">
       <button class="tab" role="tab" data-v="resumen">Resumen</button>
+      <button class="tab" role="tab" data-v="preguntar">Preguntar</button>
       <button class="tab" role="tab" data-v="equipos">Equipos 52-12-4</button>
       <button class="tab" role="tab" data-v="equipo">Detalle de equipo</button>
       <button class="tab" role="tab" data-v="linea">Tiempos de línea</button>
       <button class="tab" role="tab" data-v="paradas">Paradas</button>
       <button class="tab" role="tab" data-v="comparar">Comparar líneas</button>
-      <button class="tab" role="tab" data-v="cargar">Cargar archivos</button>
+      <button class="tab" role="tab" data-v="cargar">Cargar reportes</button>
     </div>
     <div class="filters" id="filters">
       <label for="fCut">Semana de corte <select id="fCut"></select></label>
@@ -323,22 +343,39 @@ footer{padding-block:18px 32px;border-top:1px solid var(--line);font-size:12.5px
     <div class="panel"><h3>12W por tipo de equipo <span class="hint">% del tiempo de carga perdido por todos los equipos del tipo</span></h3><div class="chart tall" id="chCmpTipo"></div></div>
   </section>
 
+  <!-- PREGUNTAR -->
+  <section class="view" id="v-preguntar" hidden>
+    <div class="panel chat">
+      <h3>Pregúntale a los datos <span class="hint">funciona dentro de esta página, sin internet ni servicios externos</span></h3>
+      <div id="chatLog" class="chat-log" aria-live="polite"></div>
+      <form id="chatForm" class="chat-form" autocomplete="off">
+        <label for="chatIn" class="sr">Pregunta</label>
+        <input id="chatIn" type="text" placeholder="Ej: ¿Qué equipo de la L5 tuvo más horas de falla en octubre?">
+        <button class="btn primary" type="submit">Preguntar</button>
+      </form>
+      <div id="chatSug" class="chat-sug"></div>
+    </div>
+  </section>
+
   <!-- CARGAR -->
   <section class="view" id="v-cargar" hidden>
     <div class="drop-all" id="dropAll">
-      <h3 style="font-size:24px">Carga los archivos MED de cada línea</h3>
-      <p>Arrastra aquí uno o varios Excel (L5, L7, LE7, L8, L9). Se asignan solos por el nombre del archivo. También puedes usar el botón de cada línea.</p>
-      <button class="btn primary" id="pickAll" type="button">Elegir archivos</button>
+      <h3 style="font-size:24px">Sube el reporte BD</h3>
+      <p>Arrastra aquí el Excel descargado (por ejemplo <i>Reporte_BD_2026-10-27.xlsx</i>). Trae todas las líneas juntas y el tablero las separa solo por la columna LÍNEA. Puedes subir varios reportes: se suman, y si dos cubren las mismas fechas de una línea, gana el más reciente.</p>
+      <button class="btn primary" id="pickAll" type="button">Elegir reporte</button>
       <input type="file" id="fileAll" accept=".xlsx,.xlsm" multiple hidden>
+      <div id="loadProg"></div>
     </div>
-    <div class="slots" id="slots"></div>
+    <div class="panel"><h3>Líneas detectadas</h3><div class="tablebox"><table id="linesTable"></table></div></div>
+    <div class="panel"><h3>Reportes cargados</h3><div class="tablebox"><table id="repTable"></table></div></div>
     <div class="panel">
       <h3>Cómo funciona</h3>
       <ol class="howto">
-        <li>Solo se leen las hojas <b>BD PARADAS</b> y <b>BD TIEMPOS</b>. Las demás hojas se ignoran.</li>
-        <li>El archivo se procesa en tu navegador. Los datos no se envían a ningún servidor y quedan guardados en este navegador para la próxima visita.</li>
-        <li>Cada semana, vuelve a cargar el archivo actualizado de la línea: reemplaza al anterior.</li>
-        <li>El 52-12-4 de un equipo = horas de falla del equipo ÷ (EPT + horas por causas internas de la línea) en 52, 12 y 4 semanas hasta la semana de corte.</li>
+        <li>Se leen las hojas <b>BD PARADAS</b> y <b>BD TIEMPOS</b> del reporte. Las demás hojas (BD PRODUCCION, BD CONSOLIDADO) se ignoran.</li>
+        <li>Cada fila se asigna a su línea según la columna <b>LÍNEA</b>: TREN-5 → L5, TREN-7 → L7, TREN-8 → L8, TREN-9 → L9.</li>
+        <li>Para tener 52 y 12 semanas completas, sube un reporte que cubra ese periodo, o ve subiendo los reportes semanales: se van acumulando.</li>
+        <li>El archivo se procesa en tu navegador. Los datos no se envían a ningún servidor y quedan guardados aquí para la próxima visita.</li>
+        <li>El 52-12-4 de un equipo = horas de falla del equipo ÷ (EPT + horas por causas internas de su línea) en 52, 12 y 4 semanas hasta la semana de corte.</li>
       </ol>
     </div>
   </section>
@@ -461,9 +498,9 @@ function parserModule(isWorker){
   const num=v=>typeof v==='number'?v:(v==null||v===''?0:(parseFloat(String(v).replace(',','.'))||0));
   function makeDict(){const map=new Map(),list=[];return{list,id(v){const s=v==null?'':String(v).trim();let i=map.get(s);if(i===undefined){i=list.length;list.push(s);map.set(s,i);}return i;}};}
 
-  const PF={fecha:'FECHA',turno:'TURNO',llen:'LLENADORA',hini:'HORA INICIO LLENADORA',parada:'PARADA',tipo:'TIPO PARADA',sub:'SUBTIPO PARADA',l4:'SUBTIPO PARADA L4',prod:'NOMBRE PRODUCTO',teq:'TIPO EQUIPO',eq:'EQUIPO',sc:'SUB CONJUNTO',det:'DETALLE',min:'TIEMPO PARADA (MIN)',hrs:'TIEMPO PARADA (HRS)',minL:'TIEMPO PARADA LLENADORA (MIN)',causa:'CAUSA RAIZ',acc:'ACCIONES',clas:'CLASIFICACION DEL TIEMPO DE PARADA',api:'TIPO PARADA API'};
-  const PDICT=['turno','llen','parada','tipo','sub','l4','prod','teq','eq','sc','det','causa','acc','clas','api'];
-  const TF={fecha:'FECHA',turno:'TURNO',hl:'PRODUCCION HL',nchg:'# CHANGEOVERS',chg:'CHANGEOVERS TIME (HRS)',total:'TOTAL TIME (HRS)',ept:'EPT (HRS)',nst:'NST REAL (HRS)',dpa:'DPA REAL (HRS)',ec:'EXTERNAL CAUSES REAL (HRS)',ic:'INTERNAL CAUSES REAL (HRS)'};
+  const PF={linea:'LINEA',planta:'PLANTA',hini2:'HORA INICIO',fecha:'FECHA',turno:'TURNO',llen:'LLENADORA',hini:'HORA INICIO LLENADORA',parada:'PARADA',tipo:'TIPO PARADA',sub:'SUBTIPO PARADA',l4:'SUBTIPO PARADA L4',prod:'NOMBRE PRODUCTO',teq:'TIPO EQUIPO',eq:'EQUIPO',sc:'SUB CONJUNTO',det:'DETALLE',min:'TIEMPO PARADA (MIN)',hrs:'TIEMPO PARADA (HRS)',minL:'TIEMPO PARADA LLENADORA (MIN)',causa:'CAUSA RAIZ',acc:'ACCIONES',clas:'CLASIFICACION DEL TIEMPO DE PARADA',api:'TIPO PARADA API'};
+  const PDICT=['linea','planta','turno','llen','parada','tipo','sub','l4','prod','teq','eq','sc','det','causa','acc','clas','api'];
+  const TF={linea:'LINEA',planta:'PLANTA',fecha:'FECHA',turno:'TURNO',hl:'PRODUCCION HL',nchg:'# CHANGEOVERS',chg:'CHANGEOVERS TIME (HRS)',total:'TOTAL TIME (HRS)',ept:'EPT (HRS)',nst:'NST REAL (HRS)',dpa:'DPA REAL (HRS)',ec:'EXTERNAL CAUSES REAL (HRS)',ic:'INTERNAL CAUSES REAL (HRS)'};
 
   function headerMap(row,fields){const idx={};const want={};for(const k in fields)want[fields[k]]=k;
     for(let i=0;i<row.length;i++){if(row[i]==null)continue;const h=norm(row[i]);const k=want[h];if(k&&idx[k]===undefined)idx[k]=i;}return idx;}
@@ -497,24 +534,24 @@ function parserModule(isWorker){
       for(const k of PDICT) A[k].push(hp[k]!==undefined?D[k].id(row[hp[k]]):D[k].id(''));
       let mn=hp.min!==undefined?num(row[hp.min]):(hp.hrs!==undefined?num(row[hp.hrs])*60:0);
       A.min.push(mn); A.minL.push(hp.minL!==undefined?num(row[hp.minL]):mn);
-      A.hini.push(hp.hini!==undefined?toHour(row[hp.hini]):-1);
+      {let h=hp.hini!==undefined?toHour(row[hp.hini]):-1;if(h<0&&hp.hini2!==undefined)h=toHour(row[hp.hini2]);A.hini.push(h);}
     },f=>prog('Leyendo BD PARADAS',0.04+f*0.84));
     if(!hp) throw new Error('BD PARADAS está vacía o no tiene encabezados reconocibles.');
 
     // ---- BD TIEMPOS
-    const TD={turno:makeDict()};const TA={day:[],turno:[],hl:[],nchg:[],chg:[],total:[],ept:[],nst:[],dpa:[],ec:[],ic:[]};
+    const TD={turno:makeDict(),linea:makeDict(),planta:makeDict()};const TA={day:[],turno:[],linea:[],planta:[],hl:[],nchg:[],chg:[],total:[],ept:[],nst:[],dpa:[],ec:[],ic:[]};
     let ht=null;scanned=0;
     await streamRows(buf,zip[tPath],sst,row=>{
       if(!ht){scanned++;const h=headerMap(row,TF);if(h.fecha!==undefined&&h.turno!==undefined&&h.ept!==undefined&&h.total!==undefined){ht=h;}else if(scanned>400){throw new Error('No encontré los encabezados (FECHA, TURNO, EPT) en BD TIEMPOS.');}return;}
       const day=toDay(row[ht.fecha]);const tot=row[ht.total]; if(day==null||tot==null||tot==='') return;
-      TA.day.push(day);TA.turno.push(TD.turno.id(row[ht.turno]));
+      TA.day.push(day);TA.turno.push(TD.turno.id(row[ht.turno]));TA.linea.push(TD.linea.id(ht.linea!==undefined?row[ht.linea]:''));TA.planta.push(TD.planta.id(ht.planta!==undefined?row[ht.planta]:''));
       for(const k of ['hl','nchg','chg','total','ept','nst','dpa','ec','ic']) TA[k].push(ht[k]!==undefined?num(row[ht[k]]):0);
     },f=>prog('Leyendo BD TIEMPOS',0.88+f*0.11));
     if(!ht) throw new Error('BD TIEMPOS no tiene encabezados reconocibles.');
 
     const P={n:A.day.length,day:Int32Array.from(A.day),hini:Float32Array.from(A.hini),min:Float32Array.from(A.min),minL:Float32Array.from(A.minL),dict:{}};
     for(const k of PDICT){P[k]=Int32Array.from(A[k]);P.dict[k]=D[k].list;}
-    const T={n:TA.day.length,day:Int32Array.from(TA.day),turno:Int32Array.from(TA.turno),dict:{turno:TD.turno.list}};
+    const T={n:TA.day.length,day:Int32Array.from(TA.day),turno:Int32Array.from(TA.turno),linea:Int32Array.from(TA.linea),planta:Int32Array.from(TA.planta),dict:{turno:TD.turno.list,linea:TD.linea.list,planta:TD.planta.list}};
     for(const k of ['hl','nchg','chg','total','ept','nst','dpa','ec','ic']) T[k]=Float64Array.from(TA[k]);
     prog('Listo',1);
     return {P,T};
@@ -533,7 +570,7 @@ function parserModule(isWorker){
 /* =====================================================================
    2) CONFIGURACIÓN
    ===================================================================== */
-const LINEAS=['L5','L7','LE7','L8','L9'];   // edita aquí si cambian las líneas
+let LINEAS=[];   // se llena solo con las líneas que trae el reporte (TREN-5 → L5, etc.)
 const META=0.005;                             // meta 52-12-4: 0,5 %
 const STATUS={
   ok:{label:'Cumple',cls:'good'},
@@ -600,7 +637,11 @@ function buildModel(slot,raw){
     const tp=P.dict.teq[P.teq[i]]||'Sin tipo';e.tipoCnt[tp]=(e.tipoCnt[tp]||0)+1;
   }
   for(const e of eqs){e.tipo=Object.entries(e.tipoCnt).sort((a,b)=>b[1]-a[1])[0]?.[0]||'Sin tipo';e.pre=pre(e.fail);e.cpre=pre(e.cnt);}
-  return {slot,P,T,weeks,nW,wIdx,W,den,denPre,eqs,icCode,nstCode,microCode,pWeek,tWeek,pre};
+  let firstDay=Infinity,lastDay=-Infinity;for(let i=0;i<T.n;i++){if(T.day[i]<firstDay)firstDay=T.day[i];if(T.day[i]>lastDay)lastDay=T.day[i];}
+  for(let i=0;i<P.n;i++){if(P.day[i]>lastDay&&wIdx.has(mondayOf(P.day[i])))lastDay=P.day[i];}
+  const wDays=new Int16Array(nW);{const seen=new Set();for(let i=0;i<T.n;i++){const d=T.day[i];if(!seen.has(d)){seen.add(d);wDays[tWeek[i]]++;}}}
+  const eqIds=new Set();for(let i=0;i<P.n;i++){if(P.dict.eq[P.eq[i]])eqIds.add(P.eq[i]);}
+  return {slot,P,T,weeks,nW,wIdx,W,den,denPre,eqs,icCode,nstCode,microCode,pWeek,tWeek,pre,firstDay,lastDay,wDays,eqIds};
 }
 function rng(M,end,N){const a=Math.max(0,end-N+1);return[a,end];}
 function sumP(pre,a,b){return a>b?0:pre[b+1]-pre[a];}
@@ -608,7 +649,7 @@ function kpiEq(M,e,end,N){const[a,b]=rng(M,end,N);const d=sumP(M.denPre,a,b);ret
 function eqRow(M,e,end){
   const p52=kpiEq(M,e,end,52),p12=kpiEq(M,e,end,12),p4=kpiEq(M,e,end,4);
   const[a,b]=rng(M,end,12);const h12=sumP(e.pre,a,b),n12=sumP(e.cpre,a,b);
-  const spark=[];for(let w=Math.max(11,end-25);w<=end;w++)spark.push(kpiEq(M,e,w,12));
+  const spark=[];for(let w=Math.max(M.nW<12?0:11,end-25);w<=end;w++)spark.push(kpiEq(M,e,w,12));
   const h4=sumP(e.pre,Math.max(0,end-3),end)/Math.min(4,end+1);
   const ret=projReturn(M,e,end,h4);
   return{e,p52,p12,p4,h12,n12,mttr:n12?h12*60/n12:null,st:statusOf(p52,p12),spark,ret,h4};
@@ -639,25 +680,77 @@ function weeklyInd(M){const W=M.W;return M.weeks.map((_,w)=>{const e=W.ept[w],t=
 
 /* =====================================================================
    5) ESTADO + PERSISTENCIA (IndexedDB, solo en este navegador)
+   Cada reporte subido se guarda como un "lote". Los lotes se combinan:
+   si dos lotes traen la misma línea en las mismas fechas, gana el más nuevo.
    ===================================================================== */
 const state={slot:null,cut:null,win:12,view:'cargar',eq:null,sort:{k:'p12',dir:-1},stFilter:new Set(),search:'',projMin:null};
-const models={};const meta={};
-const DB_NAME='confiabilidad-envase',STORE='lineas';
-function idb(){return new Promise((res,rej)=>{try{const r=indexedDB.open(DB_NAME,1);r.onupgradeneeded=()=>r.result.createObjectStore(STORE);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);}catch(e){rej(e);}});}
-async function idbPut(k,v){try{const db=await idb();await new Promise((res,rej)=>{const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).put(v,k);tx.oncomplete=res;tx.onerror=()=>rej(tx.error);});}catch(e){console.warn('No se pudo guardar en el navegador',e);}}
-async function idbDel(k){try{const db=await idb();await new Promise(res=>{const tx=db.transaction(STORE,'readwrite');k==null?tx.objectStore(STORE).clear():tx.objectStore(STORE).delete(k);tx.oncomplete=res;tx.onerror=res;});}catch(e){}}
-async function idbAll(){try{const db=await idb();return await new Promise(res=>{const out={};const tx=db.transaction(STORE,'readonly');const st=tx.objectStore(STORE);const rq=st.openCursor();rq.onsuccess=()=>{const c=rq.result;if(c){out[c.key]=c.value;c.continue();}else res(out);};rq.onerror=()=>res(out);});}catch(e){return{};}}
+const models={};let chunks=[];const loadInfo={active:false,file:'',step:'',prog:0,err:null,queue:0};
+let lineInfo={};
+const DB_NAME='confiabilidad-envase',STORE='reportes';
+function idb(){return new Promise((res,rej)=>{try{const r=indexedDB.open(DB_NAME,2);r.onupgradeneeded=()=>{const db=r.result;if(!db.objectStoreNames.contains('lineas'))db.createObjectStore('lineas');if(!db.objectStoreNames.contains(STORE))db.createObjectStore(STORE);};r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);}catch(e){rej(e);}});}
+async function idbPut(k,v){try{const db=await idb();await new Promise((res,rej)=>{const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).put(v,k);tx.oncomplete=res;tx.onerror=()=>rej(tx.error);});return true;}catch(e){console.warn('No se pudo guardar en el navegador',e);return false;}}
+async function idbDel(k,store=STORE){try{const db=await idb();await new Promise(res=>{const tx=db.transaction(store,'readwrite');k==null?tx.objectStore(store).clear():tx.objectStore(store).delete(k);tx.oncomplete=res;tx.onerror=res;});}catch(e){}}
+async function idbAll(store=STORE){try{const db=await idb();return await new Promise(res=>{const out={};const tx=db.transaction(store,'readonly');const st=tx.objectStore(store);const rq=st.openCursor();rq.onsuccess=()=>{const c=rq.result;if(c){out[c.key]=c.value;c.continue();}else res(out);};rq.onerror=()=>res(out);});}catch(e){return{};}}
 function savePrefs(){try{localStorage.setItem('ce-prefs',JSON.stringify({slot:state.slot,win:state.win}));}catch(e){}}
 function loadPrefs(){try{return JSON.parse(localStorage.getItem('ce-prefs')||'{}');}catch(e){return{};}}
+
+/* Nombre corto de la línea: "TREN-5" → "L5". Si hay varias plantas, se antepone la planta. */
+function lineShort(raw){const s=String(raw==null?'':raw).trim();if(!s)return 'Sin línea';const m=/(\d+)/.exec(s);return m?'L'+(+m[1]):s;}
+function lineSortKey(k){const m=/(\d+)/.exec(k);return (m?+m[1]:999)*10+(/LE/i.test(k)?1:0);}
+
+/* Combina todos los lotes y arma un modelo por línea */
+function rebuild(){
+  const sorted=[...chunks].sort((a,b)=>a.loadedAt-b.loadedAt);
+  const plants=new Set();
+  for(const c of sorted){for(const s of (c.P.dict.planta||[]))if(s)plants.add(s);for(const s of (c.T.dict.planta||[]))if(s)plants.add(s);}
+  const multi=plants.size>1;
+  const keyOf=(pl,li)=>(multi&&pl?pl+' ':'')+lineShort(li);
+  const G={};const gid=(f,v)=>{const d=G[f]||(G[f]={list:[],map:new Map()});const s=v==null?'':v;let i=d.map.get(s);if(i===undefined){i=d.list.length;d.list.push(s);d.map.set(s,i);}return i;};
+  const PDF=['turno','llen','parada','tipo','sub','l4','prod','teq','eq','sc','det','causa','acc','clas','api'];
+  const TK=['hl','nchg','chg','total','ept','nst','dpa','ec','ic'];
+  // 1) llaves de línea por fila y rango de fechas de cada línea en cada lote
+  for(const c of sorted){
+    const pk=c.P.linea?c.P.dict.linea.map(()=>null):null;
+    c._pKey=new Array(c.P.n);c._tKey=new Array(c.T.n);c._rng={};
+    const add=(k,d)=>{const r=c._rng[k];if(!r)c._rng[k]=[d,d];else{if(d<r[0])r[0]=d;if(d>r[1])r[1]=d;}};
+    for(let i=0;i<c.P.n;i++){const k=c.P.linea?keyOf(c.P.planta?c.P.dict.planta[c.P.planta[i]]:'',c.P.dict.linea[c.P.linea[i]]):'Sin línea';c._pKey[i]=k;add(k,c.P.day[i]);}
+    for(let i=0;i<c.T.n;i++){const k=c.T.linea?keyOf(c.T.planta?c.T.dict.planta[c.T.planta[i]]:'',c.T.dict.linea[c.T.linea[i]]):'Sin línea';c._tKey[i]=k;add(k,c.T.day[i]);}
+    c.lines=Object.keys(c._rng).sort((a,b)=>lineSortKey(a)-lineSortKey(b));
+  }
+  // 2) filas aceptadas (las fechas cubiertas por un lote más nuevo se descartan)
+  const per={};const newPer=()=>{const P={day:[],hini:[],min:[],minL:[]};for(const f of PDF)P[f]=[];const T={day:[],turno:[]};for(const k of TK)T[k]=[];return{P,T,files:new Set()};};
+  sorted.forEach((c,ci)=>{
+    const newer=sorted.slice(ci+1);
+    const covered=(k,d)=>{for(const n of newer){const r=n._rng[k];if(r&&d>=r[0]&&d<=r[1])return true;}return false;};
+    const pm={};for(const f of PDF)pm[f]=(c.P.dict[f]||[]).map(v=>gid(f,v));
+    for(let i=0;i<c.P.n;i++){const k=c._pKey[i],d=c.P.day[i];if(covered(k,d))continue;const o=per[k]||(per[k]=newPer());o.files.add(c.file);
+      o.P.day.push(d);o.P.hini.push(c.P.hini[i]);o.P.min.push(c.P.min[i]);o.P.minL.push(c.P.minL[i]);
+      for(const f of PDF)o.P[f].push(c.P[f]?pm[f][c.P[f][i]]:gid(f,''));}
+    const tm=(c.T.dict.turno||[]).map(v=>gid('tturno',v));
+    for(let i=0;i<c.T.n;i++){const k=c._tKey[i],d=c.T.day[i];if(covered(k,d))continue;const o=per[k]||(per[k]=newPer());o.files.add(c.file);
+      o.T.day.push(d);o.T.turno.push(tm[c.T.turno[i]]);for(const f of TK)o.T[f].push(c.T[f][i]);}
+  });
+  for(const f of [...PDF,'tturno'])gid(f,'');
+  for(const k in models)delete models[k];
+  lineInfo={};
+  for(const k in per){
+    const o=per[k];
+    const P={n:o.P.day.length,day:Int32Array.from(o.P.day),hini:Float32Array.from(o.P.hini),min:Float32Array.from(o.P.min),minL:Float32Array.from(o.P.minL),dict:{}};
+    for(const f of PDF){P[f]=Int32Array.from(o.P[f]);P.dict[f]=G[f].list;}
+    const T={n:o.T.day.length,day:Int32Array.from(o.T.day),turno:Int32Array.from(o.T.turno),dict:{turno:G.tturno.list}};
+    for(const f of TK)T[f]=Float64Array.from(o.T[f]);
+    lineInfo[k]={rowsP:P.n,rowsT:T.n,files:[...o.files]};
+    if(T.n>0){try{models[k]=buildModel(k,{P,T});}catch(e){console.warn('Línea',k,e);lineInfo[k].err=e.message;}}
+    else lineInfo[k].err='Sin filas en BD TIEMPOS: no se puede calcular el 52-12-4.';
+  }
+  LINEAS=Object.keys(models).sort((a,b)=>lineSortKey(a)-lineSortKey(b));
+  if(!models[state.slot]){state.slot=LINEAS[0]||null;state.cut=null;}
+  for(const c of sorted){delete c._pKey;delete c._tKey;}
+}
 
 /* =====================================================================
    6) CARGA DE ARCHIVOS
    ===================================================================== */
-function slotFromName(name){const n=name.toUpperCase().replace(/[_\-.]/g,' ');
-  if(/\bLE\s*7\b|LE7/.test(n)) return LINEAS.includes('LE7')?'LE7':null;
-  const m=/\bL\s*0?(\d{1,2})\b/.exec(n)||/L(\d{1,2})(?!\d)/.exec(n); if(m){const s='L'+m[1];return LINEAS.includes(s)?s:null;}
-  return null;}
-const busy={};
 function runParse(file,onProg){
   return new Promise(async(resolve,reject)=>{
     const fallback=async()=>{try{const buf=new Uint8Array(await file.arrayBuffer());resolve(await parserModule(false).parse(buf,onProg));}catch(e){reject(e);}};
@@ -669,28 +762,26 @@ function runParse(file,onProg){
     const buf=await file.arrayBuffer();w.postMessage({buf},[buf]);
   });
 }
-async function loadFile(slot,file){
-  if(busy[slot]) return;busy[slot]=true;
-  const t0=performance.now();
-  meta[slot]={...(meta[slot]||{}),loading:true,err:null,prog:0,step:'Preparando',file:file.name};renderSlots();
+async function loadFile(file){
+  Object.assign(loadInfo,{active:true,file:file.name,step:'Preparando',prog:0,err:null});renderLoadProg();
   try{
-    const raw=await runParse(file,(s,p)=>{meta[slot].prog=p;meta[slot].step=s;updateSlotProg(slot);});
-    if(!raw.T.n) throw new Error('BD TIEMPOS no tiene filas con fecha y tiempo total.');
-    const M=buildModel(slot,raw);
-    models[slot]=M;
-    meta[slot]={file:file.name,loadedAt:Date.now(),rowsP:raw.P.n,rowsT:raw.T.n,secs:(performance.now()-t0)/1000};
-    await idbPut(slot,{raw,meta:meta[slot]});
-    if(!state.slot||!models[state.slot]) state.slot=slot;
-    toast(`${slot}: ${nf(raw.P.n)} paradas y ${nf(raw.T.n)} turnos cargados`);
+    const raw=await runParse(file,(s,p)=>{loadInfo.step=s;loadInfo.prog=p;renderLoadProg();});
+    if(!raw.P.n&&!raw.T.n) throw new Error('El archivo no tiene filas con fecha en BD PARADAS ni en BD TIEMPOS.');
+    let mn=Infinity,mx=-Infinity;for(const a of [raw.P.day,raw.T.day])for(let i=0;i<a.length;i++){if(a[i]<mn)mn=a[i];if(a[i]>mx)mx=a[i];}
+    const c={id:'r'+Date.now()+Math.random().toString(36).slice(2,6),file:file.name,loadedAt:Date.now(),P:raw.P,T:raw.T,minDay:mn,maxDay:mx,rowsP:raw.P.n,rowsT:raw.T.n};
+    chunks.push(c);
+    loadInfo.step='Combinando';renderLoadProg();
+    rebuild();
+    const ok=await idbPut(c.id,{id:c.id,file:c.file,loadedAt:c.loadedAt,P:c.P,T:c.T,minDay:mn,maxDay:mx,rowsP:c.rowsP,rowsT:c.rowsT});
+    toast(`${file.name}: ${c.lines.join(', ')} · ${dstr(mn)} a ${dstr(mx)}${ok?'':' (no se pudo guardar en el navegador)'}`);
     afterDataChange();
-  }catch(e){console.error(e);meta[slot]={...(meta[slot]||{}),loading:false,err:e.message||String(e)};}
-  finally{busy[slot]=false;if(meta[slot])meta[slot].loading=false;renderSlots();renderPlates();}
+  }catch(e){console.error(e);loadInfo.err=`${file.name}: ${e.message||e}`;}
+  finally{loadInfo.active=false;renderLoadProg();renderCargar();renderPlates();}
 }
-function handleFiles(files,forced){
+function handleFiles(files){
   const list=[...files].filter(f=>/\.xls[xm]$/i.test(f.name));
   if(!list.length){toast('Elige archivos de Excel .xlsx');return;}
-  const free=()=>LINEAS.find(l=>!models[l]&&!busy[l]);
-  (async()=>{for(const f of list){const s=forced||slotFromName(f.name)||free();if(!s){toast(`No supe a qué línea asignar ${f.name}`);continue;}await loadFile(s,f);}})();
+  (async()=>{for(const f of list)await loadFile(f);})();
 }
 
 /* =====================================================================
@@ -698,17 +789,18 @@ function handleFiles(files,forced){
    ===================================================================== */
 function curModel(){return models[state.slot]||null;}
 function renderPlates(){
-  $('#plates').innerHTML=LINEAS.map(l=>{const M=models[l];const sub=M?('hasta '+wk(M.weeks[M.nW-1])):(meta[l]?.loading?'cargando…':'sin archivo');
-    return `<button type="button" class="plate ${M?'loaded':'empty'} ${state.slot===l&&M?'active':''}" data-slot="${l}" aria-pressed="${state.slot===l}"><span class="dot"></span><span><b>${l}</b><br><small>${sub}</small></span></button>`;}).join('');
+  const busy=loadInfo.active?`<span class="plate empty" style="cursor:default"><span class="dot"></span><span><b>…</b><br><small>${Math.round(loadInfo.prog*100)} %</small></span></span>`:'';
+  if(!LINEAS.length){$('#plates').innerHTML=busy||`<button type="button" class="plate empty" data-slot=""><span class="dot"></span><span><b>Sin datos</b><br><small>sube el reporte</small></span></button>`;return;}
+  $('#plates').innerHTML=LINEAS.map(l=>{const M=models[l];return `<button type="button" class="plate loaded ${state.slot===l?'active':''}" data-slot="${esc(l)}" aria-pressed="${state.slot===l}"><span class="dot"></span><span><b>${esc(l)}</b><br><small>hasta ${wk(M.weeks[M.nW-1])}</small></span></button>`;}).join('')+busy;
 }
 $('#plates').addEventListener('click',ev=>{const b=ev.target.closest('.plate');if(!b)return;const l=b.dataset.slot;
-  if(models[l]){state.slot=l;state.cut=null;state.eq=null;savePrefs();afterDataChange();}else{setView('cargar');}});
+  if(l&&models[l]){state.slot=l;state.cut=null;state.eq=null;savePrefs();afterDataChange();if(state.view==='cargar'||state.view==='preguntar')setView('resumen');}else{setView('cargar');}});
 function fillCut(){
   const M=curModel();const sel=$('#fCut');
   if(!M){sel.innerHTML='<option>—</option>';sel.disabled=true;return;}
   sel.disabled=false;
   if(state.cut==null||state.cut>=M.nW) state.cut=M.nW-1;
-  sel.innerHTML=M.weeks.map((m,i)=>`<option value="${i}">${wk(m,true)} · ${dstr(m,false)}–${dstr(m+6)}</option>`).reverse().join('');
+  sel.innerHTML=M.weeks.map((m,i)=>`<option value="${i}">${wk(m,true)} · ${dstr(m,false)}–${dstr(m+6)}${M.wDays[i]<7?` (parcial: ${M.wDays[i]} día${M.wDays[i]>1?'s':''})`:''}</option>`).reverse().join('');
   sel.value=String(state.cut);
 }
 $('#fCut').addEventListener('change',e=>{state.cut=+e.target.value;renderView();});
@@ -724,23 +816,24 @@ function setView(v){
   state.view=v;
   for(const t of document.querySelectorAll('.tab'))t.setAttribute('aria-selected',String(t.dataset.v===v));
   for(const s of document.querySelectorAll('.view'))s.hidden=s.id!=='v-'+v;
-  $('#filters').style.display=v==='cargar'?'none':'';
+  $('#filters').style.display=(v==='cargar'||v==='preguntar')?'none':'';
   try{history.replaceState(null,'','#'+v);}catch(e){}
   renderView();
 }
 $('#tabs').addEventListener('click',e=>{const t=e.target.closest('.tab');if(t)setView(t.dataset.v);});
-function afterDataChange(){renderPlates();fillCut();renderView();}
+function afterDataChange(){A_IDF=null;renderPlates();fillCut();renderCargar();renderView();}
 function needData(sec){
   const el=$('#v-'+sec);let es=el.querySelector('.empty-state');
   if(!curModel()){
-    if(!es){es=document.createElement('div');es.className='panel empty-state';es.innerHTML='<h3>Aún no hay datos para mostrar</h3><p>Carga el archivo MED de al menos una línea para ver este análisis.</p><button class="btn primary" type="button">Ir a cargar archivos</button>';es.querySelector('button').onclick=()=>setView('cargar');el.prepend(es);}
+    if(!es){es=document.createElement('div');es.className='panel empty-state';es.innerHTML='<h3>Aún no hay datos para mostrar</h3><p>Sube el reporte BD (el Excel con todas las líneas) para ver este análisis.</p><button class="btn primary" type="button">Ir a cargar reportes</button>';es.querySelector('button').onclick=()=>setView('cargar');el.prepend(es);}
     for(const c of el.children)if(c!==es)c.hidden=true;return true;}
   if(es)es.remove();for(const c of el.children)c.hidden=false;return false;
 }
 function renderView(){
   renderCtx();
   const v=state.view;
-  if(v==='cargar'){renderSlots();return;}
+  if(v==='cargar'){renderCargar();return;}
+  if(v==='preguntar'){renderPreguntar();return;}
   if(v==='comparar'){renderComparar();return;}
   if(needData(v)) return;
   ({resumen:renderResumen,equipos:renderEquipos,equipo:renderEquipo,linea:renderLinea,paradas:renderParadas})[v]();
@@ -923,7 +1016,7 @@ function renderEquipo(){
     tile('Horas de producción entre paradas',nN?nf(s.ept/nN,1):'–','EPT ÷ paradas (MTBF aprox.)')+tile('Pérdida media últimas 4 sem',nf(r.h4*60,0)+' <small style="font-size:16px;color:var(--muted)">min/sem</small>','');
   // rolling
   const from=Math.max(0,end-51);const xs=[],s52=[],s12=[],s4=[],wh=[];
-  for(let w=from;w<=end;w++){xs.push(wk(M.weeks[w]));s52.push(w>=51?kpiEq(M,e,w,52):null);s12.push(w>=11?kpiEq(M,e,w,12):null);s4.push(w>=3?kpiEq(M,e,w,4):null);wh.push(+e.fail[w].toFixed(3));}
+  const ok=(w,N)=>w>=N-1||M.nW<N;for(let w=from;w<=end;w++){xs.push(wk(M.weeks[w]));s52.push(ok(w,52)?kpiEq(M,e,w,52):null);s12.push(ok(w,12)?kpiEq(M,e,w,12):null);s4.push(ok(w,4)?kpiEq(M,e,w,4):null);wh.push(+e.fail[w].toFixed(3));}
   chart('chRoll',{...o,tooltip:{...o.tooltip,valueFormatter:v=>v==null?'–':pct(v)},xAxis:axisCat(c,xs,{boundaryGap:false}),yAxis:axisVal(c,{axisLabel:{color:c.muted,formatter:pctFmt}}),
     series:[{name:'52W',type:'line',data:s52,showSymbol:false,lineStyle:{width:2},itemStyle:{color:c.s[0]},connectNulls:false},
       {name:'12W',type:'line',data:s12,showSymbol:false,lineStyle:{width:2},itemStyle:{color:c.s[1]},markLine:metaLine(c)},
@@ -963,7 +1056,7 @@ function stack100(id,keys,bars,c,extra){
 function renderProj(M,e,end,r){
   const{c,o}=base();const h=(+$('#projMin').value||0)/60;
   const K=16;const sc=[['Sin nuevas fallas',0,c.s[2]],[`${nf(h*60,0)} min/sem (tu estimado)`,h,c.s[1]],[`Promedio 4W (${nf(r.h4*60,0)} min/sem)`,r.h4,c.s[6]]];
-  const hist=[];const xs=[];for(let w=Math.max(11,end-11);w<=end;w++){xs.push(wk(M.weeks[w]));hist.push(kpiEq(M,e,w,12));}
+  const hist=[];const xs=[];for(let w=Math.max(M.nW<12?0:11,end-11);w<=end;w++){xs.push(wk(M.weeks[w]));hist.push(kpiEq(M,e,w,12));}
   const nh=xs.length;for(let k=1;k<=K;k++)xs.push(wk(M.weeks[end]+7*k));
   const ser=[{name:'12W real',type:'line',data:[...hist,...Array(K).fill(null)],showSymbol:false,lineStyle:{width:2.5},itemStyle:{color:c.s[0]},markLine:metaLine(c)}];
   for(const[nm,hv,col] of sc){const p=projSeries(M,e,end,hv,K);ser.push({name:nm,type:'line',data:[...Array(nh-1).fill(null),hist[nh-1],...p],showSymbol:false,lineStyle:{width:2,type:'dashed'},itemStyle:{color:col}});}
@@ -1064,7 +1157,7 @@ function renderComparar(){
   let es=el.querySelector('.empty-state');
   if(loaded.length<2){
     if(!es){es=document.createElement('div');es.className='panel empty-state';el.prepend(es);}
-    es.innerHTML=`<h3>Carga al menos dos líneas para comparar</h3><p>${loaded.length?`Hasta ahora solo está ${loaded[0]}.`:'Aún no hay líneas cargadas.'} Los archivos L5, L7, LE7, L8 y L9 tienen la misma estructura, así que se comparan directamente.</p><button class="btn primary" type="button">Cargar archivos</button>`;
+    es.innerHTML=`<h3>Se necesitan al menos dos líneas para comparar</h3><p>${loaded.length?`Hasta ahora solo hay datos de ${loaded[0]}.`:'Aún no hay líneas cargadas.'} El reporte BD normalmente trae todas las líneas juntas.</p><button class="btn primary" type="button">Cargar reportes</button>`;
     es.querySelector('button').onclick=()=>setView('cargar');
     for(const c of el.children)if(c!==es)c.hidden=true;return;}
   if(es)es.remove();for(const c of el.children)c.hidden=false;
@@ -1092,57 +1185,657 @@ function renderComparar(){
 $('#cmpTable').addEventListener('click',e=>{const tr=e.target.closest('tr[data-l]');if(tr){state.slot=tr.dataset.l;state.cut=null;afterDataChange();setView('resumen');}});
 
 /* =====================================================================
-   15) VISTA: CARGAR
+   15) VISTA: CARGAR REPORTES
    ===================================================================== */
-function renderSlots(){
-  $('#slots').innerHTML=LINEAS.map(l=>{const M=models[l],m=meta[l]||{};
-    const body=m.loading?`<div class="meta"><span id="st-${l}">${esc(m.step||'Leyendo')}…</span><span>${esc(m.file||'')}</span></div><div class="prog"><i id="pg-${l}" style="width:${Math.round((m.prog||0)*100)}%"></i></div>`
-      :M?`<div class="meta"><div>${esc(m.file||'')}</div><div><span>Datos:</span> ${dstr(M.weeks[0])} – ${dstr(M.weeks[M.nW-1]+6)}</div><div><span>Semanas:</span> ${M.nW} · <span>equipos con fallas:</span> ${M.eqs.length}</div><div><span>Filas:</span> ${nf(m.rowsP)} paradas · ${nf(m.rowsT)} turnos</div>${m.loadedAt?`<div><span>Cargado:</span> ${new Date(m.loadedAt).toLocaleString('es-CO',{dateStyle:'medium',timeStyle:'short'})}</div>`:''}</div>`
-      :`<div class="meta"><span>Arrastra aquí el archivo ${l} MED o usa el botón.</span></div>`;
-    return `<div class="slot ${M?'loaded':''}" data-slot="${l}"><div class="sl"><b>${l}</b>${M?pill('ok').replace('Cumple','Cargado'):''}</div>${body}${m.err?`<div class="err">${esc(m.err)}</div>`:''}
-      <div class="act"><button class="btn ${M?'':'primary'}" type="button" data-pick="${l}" ${m.loading?'disabled':''}>${M?'Reemplazar':'Subir '+l+' MED'}</button>${M?`<button class="btn ghost" type="button" data-see="${l}">Ver</button><button class="btn ghost" type="button" data-del="${l}">Quitar</button>`:''}</div>
-      <input type="file" accept=".xlsx,.xlsm" hidden data-input="${l}"></div>`;}).join('');
+function renderLoadProg(){
+  const el=$('#loadProg');if(!el)return;
+  if(loadInfo.active) el.innerHTML=`<div class="meta" style="margin-top:12px"><b>${esc(loadInfo.file)}</b> · ${esc(loadInfo.step)}… ${Math.round(loadInfo.prog*100)} %</div><div class="prog" style="max-width:420px;margin:6px auto 0"><i style="width:${Math.round(loadInfo.prog*100)}%"></i></div>`;
+  else el.innerHTML=loadInfo.err?`<p class="err" style="margin-top:12px">${esc(loadInfo.err)}</p>`:'';
+  renderPlates();
 }
-function updateSlotProg(l){const m=meta[l];const p=document.getElementById('pg-'+l),s=document.getElementById('st-'+l);if(p)p.style.width=Math.round(m.prog*100)+'%';if(s)s.textContent=m.step+'… '+Math.round(m.prog*100)+' %';renderPlates();}
-$('#slots').addEventListener('click',e=>{
-  const pk=e.target.closest('[data-pick]');if(pk){$(`[data-input="${pk.dataset.pick}"]`).click();return;}
-  const se=e.target.closest('[data-see]');if(se){state.slot=se.dataset.see;state.cut=null;afterDataChange();setView('resumen');return;}
-  const de=e.target.closest('[data-del]');if(de){const l=de.dataset.del;delete models[l];delete meta[l];idbDel(l);if(state.slot===l)state.slot=LINEAS.find(x=>models[x])||null;state.cut=null;afterDataChange();toast(`${l} quitada`);}
-});
-$('#slots').addEventListener('change',e=>{const inp=e.target.closest('[data-input]');if(inp&&inp.files.length){handleFiles(inp.files,inp.dataset.input);inp.value='';}});
-for(const ev of ['dragenter','dragover']){
-  $('#slots').addEventListener(ev,e=>{const s=e.target.closest('.slot');if(!s)return;e.preventDefault();s.classList.add('drag');});
-  $('#dropAll').addEventListener(ev,e=>{e.preventDefault();$('#dropAll').classList.add('drag');});
+function renderCargar(){
+  renderLoadProg();
+  const keys=Object.keys(lineInfo).sort((a,b)=>lineSortKey(a)-lineSortKey(b));
+  $('#linesTable').innerHTML=keys.length?`<thead><tr><th>Línea</th><th>Desde</th><th>Hasta</th><th class="n">Semanas</th><th class="n">Turnos</th><th class="n">Paradas</th><th class="n">Equipos con fallas</th><th></th></tr></thead><tbody>${keys.map(k=>{const M=models[k],li=lineInfo[k];
+    return M?`<tr><td><b style="font-family:var(--f-display);font-size:18px">${esc(k)}</b></td><td style="white-space:nowrap">${dstr(M.firstDay)}</td><td style="white-space:nowrap">${dstr(M.lastDay)}</td><td class="n">${M.nW}</td><td class="n">${nf(li.rowsT)}</td><td class="n">${nf(li.rowsP)}</td><td class="n">${M.eqs.length}</td><td><button class="btn ghost" type="button" data-see="${esc(k)}">Ver</button></td></tr>`
+      :`<tr><td><b>${esc(k)}</b></td><td colspan="7" class="err">${esc(li.err||'Sin datos suficientes')}</td></tr>`;}).join('')}</tbody>`:'<tbody><tr><td class="neutral">Todavía no hay líneas. Sube un reporte para empezar.</td></tr></tbody>';
+  const cs=[...chunks].sort((a,b)=>b.loadedAt-a.loadedAt);
+  $('#repTable').innerHTML=cs.length?`<thead><tr><th>Archivo</th><th>Fechas</th><th>Líneas</th><th class="n">Filas</th><th>Cargado</th><th></th></tr></thead><tbody>${cs.map(c=>`<tr><td style="max-width:260px;word-break:break-all">${esc(c.file)}</td><td style="white-space:nowrap">${dstr(c.minDay)} – ${dstr(c.maxDay)}</td><td>${esc((c.lines||[]).join(', '))}</td><td class="n">${nf(c.rowsP)} + ${nf(c.rowsT)}</td><td style="white-space:nowrap">${new Date(c.loadedAt).toLocaleString('es-CO',{dateStyle:'medium',timeStyle:'short'})}</td><td><button class="btn ghost" type="button" data-del="${c.id}">Quitar</button></td></tr>`).join('')}</tbody>`:'<tbody><tr><td class="neutral">Ningún reporte cargado.</td></tr></tbody>';
 }
-$('#slots').addEventListener('dragleave',e=>{const s=e.target.closest('.slot');if(s&&!s.contains(e.relatedTarget))s.classList.remove('drag');});
-$('#slots').addEventListener('drop',e=>{const s=e.target.closest('.slot');if(!s)return;e.preventDefault();s.classList.remove('drag');handleFiles(e.dataTransfer.files,s.dataset.slot);});
+$('#linesTable').addEventListener('click',e=>{const b=e.target.closest('[data-see]');if(b){state.slot=b.dataset.see;state.cut=null;state.eq=null;savePrefs();afterDataChange();setView('resumen');}});
+$('#repTable').addEventListener('click',async e=>{const b=e.target.closest('[data-del]');if(!b)return;const id=b.dataset.del;const c=chunks.find(x=>x.id===id);chunks=chunks.filter(x=>x.id!==id);await idbDel(id);rebuild();afterDataChange();renderCargar();toast(`Reporte quitado${c?': '+c.file:''}`);});
+for(const ev of ['dragenter','dragover'])$('#dropAll').addEventListener(ev,e=>{e.preventDefault();$('#dropAll').classList.add('drag');});
 $('#dropAll').addEventListener('dragleave',e=>{if(!$('#dropAll').contains(e.relatedTarget))$('#dropAll').classList.remove('drag');});
 $('#dropAll').addEventListener('drop',e=>{e.preventDefault();$('#dropAll').classList.remove('drag');handleFiles(e.dataTransfer.files);});
 $('#pickAll').addEventListener('click',()=>$('#fileAll').click());
 $('#fileAll').addEventListener('change',e=>{handleFiles(e.target.files);e.target.value='';});
-window.addEventListener('dragover',e=>e.preventDefault());window.addEventListener('drop',e=>e.preventDefault());
+window.addEventListener('dragover',e=>e.preventDefault());
+window.addEventListener('drop',e=>{e.preventDefault();if(e.dataTransfer&&e.dataTransfer.files.length&&!e.target.closest('#dropAll')){handleFiles(e.dataTransfer.files);}});
 let clearArm=0;
 $('#clearAll').addEventListener('click',async e=>{
   if(Date.now()-clearArm>4000){clearArm=Date.now();e.target.textContent='Clic otra vez para confirmar';setTimeout(()=>e.target.textContent='Borrar datos guardados',4000);return;}
-  await idbDel(null);for(const k in models)delete models[k];for(const k in meta)delete meta[k];state.slot=null;state.cut=null;e.target.textContent='Borrar datos guardados';afterDataChange();setView('cargar');toast('Datos borrados de este navegador');
+  await idbDel(null);chunks=[];rebuild();state.slot=null;state.cut=null;e.target.textContent='Borrar datos guardados';afterDataChange();setView('cargar');toast('Datos borrados de este navegador');
 });
 
 /* =====================================================================
-   16) ARRANQUE
+   16) ASISTENTE DE PREGUNTAS (100 % local, sin servicios externos)
+   Interpreta la pregunta en español → arma una consulta (líneas, equipos,
+   fechas, turnos, categoría, agrupación, medida) → la calcula sobre los
+   datos cargados → responde con texto, tabla y gráfico.
    ===================================================================== */
-const rerender=()=>{if(state.view!=='cargar')renderView();};
+const A={prev:null,n:0};
+const A_NUMW={un:1,uno:1,una:1,dos:2,tres:3,cuatro:4,cinco:5,seis:6,siete:7,ocho:8,nueve:9,diez:10,once:11,doce:12,trece:13,catorce:14,quince:15,veinte:20,treinta:30};
+const A_MES={enero:0,febrero:1,marzo:2,abril:3,mayo:4,junio:5,julio:6,agosto:7,septiembre:8,setiembre:8,octubre:9,noviembre:10,diciembre:11};
+const A_MESRE='enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre';
+const A_NUMRE='\\d+|'+Object.keys(A_NUMW).join('|');
+const aNum=s=>A_NUMW[s]??parseInt(s,10);
+const A_STOP=new Set(('que cual cuales cuanto cuanta cuantos cuantas como cuando donde quien quienes por para de del la las el los lo le les un una unos unas en y e o u a al con sin se su sus me mi mis nos es son fue fueron ha han hay hubo habia tiene tienen tuvo tuvieron tenido esta estan estuvo este estos estas ese esa esos esas eso mas menos mayor mayores menor menores muy mucho mucha muchos muchas peor peores mejor mejores top principal principales dame dime muestrame muestra mostrar ver quiero saber podrias puedes favor porfa porfavor sobre entre desde hasta segun cada total totales todo todos todas toda numero cantidad veces vez tiempo tiempos horas hora minutos minuto min mins hrs perdido perdida perdidos perdidas perdio perdieron pierde pierden falla fallas fallo fallos fallaron averia averias dano danos parada paradas paro pararon paros evento eventos linea lineas tren equipo equipos maquina maquinas semana semanas dia dias mes meses ano anos ultima ultimas ultimo ultimos pasada pasado actual hoy ayer causa causas raiz motivo motivos razon razones problema problemas ocurre ocurrio paso pasa genera generan frecuente frecuentes comun comunes indicador indicadores porcentaje meta resumen general planta valor valores datos dato registro registros sido ser estado nivel tal hace hacer hizo acumulado acumulada suma sumado promedio media medio presento presentaron presenta presentan registrado registradas registrados tuvimos tenemos hubieron ahi alli aqui fue ocurrieron ocurrido mostro cuanta respecto relacion dentro fuera tipo tipos clase categoria categorias lista listado detalle detalles cual es son fueron nada algo hola gracias buenas buenos dias tardes noches cuantificar porque mismo misma ahora tambien igual solo solamente va van vamos anda andan sale salen fallan fallado fallando falle fallara fallaba confiable confiables no ni nunca pasando quedo quedaron mostrar grafico grafica tabla').split(' '));
+const A_ABBR={trans:'transportador',transp:'transportador',lavbot:'lavadora botellas',paster:'pasteurizadora',pasteur:'pasteurizadora',etiquet:'etiquetadora',empac:'empacadora',desempac:'desempacadora',depa:'depaletizadora',pale:'paletizadora',llena:'llenadora',insp:'inspector',lavcajas:'lavadora cajas',palecajas:'paletizadora cajas',depaestibas:'depaletizadora estibas',paleestibas:'paletizadora estibas',bot:'botellas',ebi:'inspector botellas'};
+function aNorm(s){return ' '+String(s).normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[¿?¡!,;:()"“”']/g,' ').replace(/\s+/g,' ').trim()+' ';}
+const aStem=t=>t.length>4&&/es$/.test(t)&&!/[aeiou]es$/.test(t)?t.slice(0,-2):(t.length>3&&/s$/.test(t)?t.slice(0,-1):t);
+function aTok(name){const out=[];for(const t of aNorm(name).replace(/[_/\-.]/g,' ').split(/\s+/)){if(!t)continue;out.push(t);if(A_ABBR[t])out.push(...A_ABBR[t].split(' '));}return out;}
+function dayOfYMD(y,m,d){return Math.floor(Date.UTC(y,m,d)/864e5);}
+function aAnchor(){let mx=-Infinity,mn=Infinity;for(const k of LINEAS){const M=models[k];if(M.lastDay>mx)mx=M.lastDay;if(M.firstDay<mn)mn=M.firstDay;}return{mx,mn};}
+
+/* ---------- 1) interpretar la pregunta ---------- */
+function aParse(text){
+  const q0=aNorm(text);let q=q0;const sp={raw:text,ex:{}};
+  const take=(re,fn)=>{q=q.replace(re,(...m)=>{const r=fn(...m);return r===false?m[0]:' ';});};
+  if(/^\s*(hola|buenas|buenos dias|buenas tardes|gracias|ok|listo)\s*$/.test(q0)){sp.intent='hola';return sp;}
+  if(/\b(ayuda|que (puedo|se puede|le puedo) preguntar|ejemplos?|como (te )?(uso|funciona)s?|que sabes)\b/.test(q0)){sp.intent='help';return sp;}
+  sp.follow=/^\s*(y|e|ahora|tambien|igual)\b/.test(q0)||/\blo mismo\b|\bla misma\b/.test(q0);
+  const {mx,mn}=aAnchor();const ad=new Date(mx*864e5);const aY=ad.getUTCFullYear(),aM=ad.getUTCMonth();
+  const yFor=(m,y)=>y?+y:(m<=aM?aY:aY-1);
+  const setP=(a,b,label)=>{sp.period={a:Math.max(a,mn),b:Math.min(b,mx),label};sp.ex.period=1;};
+  // umbral sobre el resultado ("equipos con más de 2 horas")
+  take(/\b(?:con |que tengan |que tuvieron )?(?:mas de|mayor(?:es)? (?:a|de|que)|superior(?:es)? a|arriba de|por encima de|al menos|minimo)\s*(\d+(?:[.,]\d+)?)\s*(horas|hrs|h|eventos|fallas|paradas|veces|%)(?=\s)/g,(m,n,u)=>{sp.having={v:parseFloat(n.replace(',','.')),u:/^h/.test(u)?'h':u==='%'?'pct':'n'};sp.ex.having=1;});
+  // líneas excluidas ("sin la L9", "excepto la 7")
+  const exl=new Set();
+  take(/\b(?:sin|excepto|menos|excluyendo|salvo|quitando)\s+(?:la |el )?(?:l|linea|tren)?\s*-?\s*(\d{1,2})((?:\s*(?:,|y|e|ni)\s*(?:la )?(?:l|linea|tren)?\s*-?\s*\d{1,2}\b)*)/g,(m,a,rest)=>{[a,...((rest||'').match(/\d{1,2}/g)||[])].forEach(n=>exl.add('L'+(+n)));sp.ex.lines=1;});
+  sp.exclLines=[...exl];
+  // duración mínima ("de más de 10 min")
+  take(/\b(?:de |con )?(?:mas de|mayor(?:es)? (?:a|de|que)|superior(?:es)? a|arriba de|por encima de|>=?)\s*(\d+(?:[.,]\d+)?)\s*(?:min|minutos|mins)\b/g,(m,n)=>{sp.minDur=parseFloat(n.replace(',','.'));sp.ex.minDur=1;});
+  // pérdida supuesta para proyección ("si pierde 30 min por semana")
+  take(/\bsi (?:pierde|perdiera|pierden|tiene|tuviera|falla|fallara|sigue perdiendo)\s*(\d+(?:[.,]\d+)?)\s*(min|minutos|mins|h|horas|hrs)\b(?:\s*(?:por|a la|cada|\/|semanales?)\s*(?:semana)?)?/g,(m,n,u)=>{const v=parseFloat(n.replace(',','.'));sp.projH=/^h/.test(u)?v:v/60;sp.ex.projH=1;});
+  // líneas
+  const ls=new Set();
+  take(/\b(?:todas? (?:las )?lineas|todas? las lineas|cada linea|toda la planta|planta completa|en la planta|de la planta|todas)\b/g,()=>{sp.allLines=true;sp.ex.lines=1;});
+  take(/\b(?:lineas?|trenes|tren|l)\s*-?\s*(\d{1,2})((?:\s*(?:,|\by\b|\be\b|\bvs\b|\bcontra\b|\bo\b)\s*(?:la |el )?(?:\bl|\blinea|\btren)?\s*-?\s*\d{1,2}\b)*)/g,(m,a,rest)=>{[a,...((rest||'').match(/\d{1,2}/g)||[])].forEach(n=>ls.add('L'+(+n)));sp.ex.lines=1;});
+  take(/\ble\s*-?\s*(\d{1,2})\b/g,(m,a)=>{ls.add('LE'+(+a));sp.ex.lines=1;});
+  sp.lineReq=[...ls];
+  // turnos
+  const ts=new Set();
+  take(/\bturnos?\s*(\d|uno|dos|tres)((?:\s*(?:,|y|e)\s*(?:\d|uno|dos|tres))*)\b/g,(m,a,rest)=>{[a,...((rest||'').match(/\d|uno|dos|tres/g)||[])].forEach(n=>ts.add('TURNO '+aNum(n)));sp.ex.turno=1;});
+  sp.turnos=[...ts];
+  // periodos
+  const M_=A_MESRE;
+  take(new RegExp(`\\b(?:del|desde el|desde|entre el|entre)\\s+(\\d{1,2})(?:\\s+de\\s+(${M_}))?\\s+(?:al|hasta el|hasta|y el|y|a)\\s+(\\d{1,2})\\s+de\\s+(${M_})(?:\\s+(?:de|del)\\s+(\\d{4}))?`,'g'),(m,d1,m1,d2,m2,y)=>{const mm2=A_MES[m2],mm1=m1?A_MES[m1]:mm2;const y2=yFor(mm2,y);const y1=mm1>mm2?y2-1:y2;setP(dayOfYMD(y1,mm1,+d1),dayOfYMD(y2,mm2,+d2),`${d1} ${MESES[mm1]} – ${d2} ${MESES[mm2]} ${y2}`);});
+  take(/\b(?:del|desde el|desde|entre el|entre)?\s*(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\s*(?:al|a|hasta|y|-)\s*(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?/g,(m,d1,m1,y1,d2,m2,y2)=>{const Y=s=>s?(s.length===2?2000+ +s:+s):null;const a=dayOfYMD(Y(y1)||yFor(m1-1),m1-1,+d1),b=dayOfYMD(Y(y2)||yFor(m2-1),m2-1,+d2);setP(a,b,`${dstr(a)} – ${dstr(b)}`);});
+  take(new RegExp(`\\bdesde\\s+(?:el\\s+)?(\\d{1,2})\\s+de\\s+(${M_})(?:\\s+(?:de|del)\\s+(\\d{4}))?`,'g'),(m,d,mm,y)=>{const mo=A_MES[mm];const a=dayOfYMD(yFor(mo,y),mo,+d);setP(a,mx,`desde ${dstr(a)}`);});
+  take(new RegExp(`\\b(?:el\\s+)?(\\d{1,2})\\s+de\\s+(${M_})(?:\\s+(?:de|del)\\s+(\\d{4}))?`,'g'),(m,d,mm,y)=>{const mo=A_MES[mm];const a=dayOfYMD(yFor(mo,y),mo,+d);setP(a,a,dstr(a));});
+  take(/\b(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\b/g,(m,d,mo,y)=>{const Y=y?(y.length===2?2000+ +y:+y):yFor(mo-1);const a=dayOfYMD(Y,mo-1,+d);setP(a,a,dstr(a));});
+  take(new RegExp(`\\b(?:ultim[oa]s|pasad[oa]s|previ[oa]s)\\s+(${A_NUMRE})\\s+(semanas|dias|meses)\\b|\\b(${A_NUMRE})\\s+(semanas|dias|meses)\\s+(?:atras|pasad[oa]s)\\b`,'g'),(m,n1,u1,n2,u2)=>{const n=aNum(n1||n2),u=u1||u2;if(!(n>0))return false;
+    if(u==='semanas'){setP(mondayOf(mx)-7*(n-1),mx,`últimas ${n} semanas`);sp.weeksN=n;}else if(u==='dias')setP(mx-n+1,mx,`últimos ${n} días`);else{const d=new Date(Date.UTC(aY,aM-(n-1),1));setP(Math.floor(d/864e5),mx,`últimos ${n} meses`);}});
+  take(/\b(52|12|4)\s*(?:w|semanas)\b/g,(m,n)=>{n=+n;setP(mondayOf(mx)-7*(n-1),mx,`últimas ${n} semanas`);sp.weeksN=n;});
+  take(/\b(?:esta semana|semana actual|la ultima semana|ultima semana)\b/g,()=>{setP(mondayOf(mx),mx,`semana ${wk(mondayOf(mx),true)}`);});
+  take(/\b(?:la semana pasada|semana pasada|la semana anterior|semana anterior)\b/g,()=>{const a=mondayOf(mx)-7;setP(a,a+6,`semana ${wk(a,true)}`);});
+  take(/\b(?:semanas?|sem|s)\s*-?\s*(\d{1,2})(?:\s*(?:a|al|hasta|y|-)\s*(?:la\s+)?(?:semana\s*|sem\s*|s\s*)?(\d{1,2}))?\b/g,(m,w1,w2)=>{
+    const wkStart=(w,y)=>{const j1=dayOfYMD(y,0,1);return Math.max(j1,mondayOf(j1)+7*(w-1));};
+    const w1n=+w1,w2n=w2?+w2:w1n;if(w1n<1||w1n>53||w2n<1||w2n>53)return false;
+    let y=aY;if(wkStart(w2n,y)>mx)y--;let y1=w1n>w2n?y-1:y;
+    const a=wkStart(w1n,y1),b=Math.min(mondayOf(wkStart(w2n,y))+6,dayOfYMD(y,11,31));setP(a,b,w2?`semanas ${w1n} a ${w2n}`:`semana ${w1n} de ${y}`);sp.weekCut=b;});
+  take(/\b(?:este mes|mes actual|en el mes|ultimo mes)\b/g,()=>{setP(dayOfYMD(aY,aM,1),mx,`${MESES[aM]} ${aY}`);});
+  take(/\b(?:mes pasado|mes anterior)\b/g,()=>{const d=new Date(Date.UTC(aY,aM-1,1));const y=d.getUTCFullYear(),m=d.getUTCMonth();setP(dayOfYMD(y,m,1),dayOfYMD(y,m+1,0),`${MESES[m]} ${y}`);});
+  take(new RegExp(`\\b(?:en|de|durante|del mes de|mes de|para)?\\s*(${M_})(?:\\s+(?:de|del)?\\s*(\\d{4}))?\\b`,'g'),(m,mm,y)=>{const mo=A_MES[mm];const Y=yFor(mo,y);setP(dayOfYMD(Y,mo,1),dayOfYMD(Y,mo+1,0),`${MESES[mo]} ${Y}`);});
+  take(/\b(?:anteayer|antier)\b/g,()=>{setP(mx-2,mx-2,dstr(mx-2));});
+  take(/\bayer\b/g,()=>{setP(mx-1,mx-1,dstr(mx-1));});
+  take(/\bhoy\b/g,()=>{setP(mx,mx,dstr(mx));});
+  take(/\b(?:este ano|en el ano|ano actual|en lo que va del ano)\b/g,()=>{setP(dayOfYMD(aY,0,1),mx,`${aY}`);});
+  take(/\b(?:ultimo ano|el ultimo ano|un ano)\b/g,()=>{setP(mondayOf(mx)-7*51,mx,'últimas 52 semanas');sp.weeksN=52;});
+  take(/\b(?:todo el historico|historico|desde el inicio|todos los datos|todo lo cargado|todo el tiempo|siempre|en total)\b/g,()=>{setP(mn,mx,'todo lo cargado');});
+  // agrupación
+  const GB=[
+    ['diaSemana',/\b(?:por|que|cual|en que|segun)\s+dias? de la semana\b|\bdias? de la semana\b/],
+    ['hora',/\b(?:a que horas?|por horas?|horas? del dia|en que horario|por horario|que horario|franja horaria)\b/],
+    ['causa',/\b(?:por que|porque|por causas?(?: raiz)?|(?:que|cual|cuales) (?:es la |son las |fue la |fueron las )?causas?(?: raiz)?|causas? raiz|motivos?|razon(?:es)?)\b/],
+    ['sc',/\b(?:por |que |cual |cuales |en que )(?:subconjuntos?|partes?|componentes?|sistemas?)\b|\bsubconjuntos?\b/],
+    ['teq',/\b(?:por |que |cual |cuales )tipos? de equipos?\b/],
+    ['tipo',/\b(?:por |que |cual |cuales )tipos? de paradas?\b|\bpor tipo\b/],
+    ['eq',/\b(?:por |que |cual |cuales |en que |de que |cada )(?:equipos?|maquinas?)\b|\bequipos? (?:con|que) mas\b|\bequipos? mas\b/],
+    ['turno',/\b(?:por |que |cual |en que |segun |cada |entre )turnos?\b/],
+    ['semana',/\b(?:por semanas?|semanal(?:mente)?|cada semana|semana a semana|que semana|cual semana|en que semana|tendencia|evolucion)\b/],
+    ['mes',/\b(?:por mes(?:es)?|mensual(?:mente)?|que mes|cada mes|en que mes)\b/],
+    ['dia',/\b(?:por dias?|diari[oa](?:mente)?|cada dia|dia a dia|que dia|cual dia|en que dia|en que fecha|que fecha)\b/],
+    ['prod',/\b(?:por |que |cual |cuales |en que )(?:productos?|referencias?|skus?|marcas?)\b/],
+    ['linea',/\b(?:por lineas?|que linea|cual linea|cuales lineas|en que linea|entre lineas|cada linea|por tren|entre las lineas)\b/],
+    ['llen',/\bpor llenadoras?\b/],
+    ['clas',/\b(?:por clasificacion|por duracion|clasificacion)\b/],
+    ['api',/\b(?:propias? o|acumulacion|falta de contenedor|tipo (?:de )?parada api|api)\b/],
+    ['cat',/\b(?:por categorias?|por tipo de tiempo|en que se va el tiempo|en que se van las horas)\b/],
+  ];
+  for(const [k,re] of GB){if(re.test(q)){sp.gb=k;sp.ex.gb=1;q=q.replace(re,' ');break;}}
+  if(sp.allLines&&!sp.gb&&/\b(cada|por|entre|compar)/.test(q0)){sp.gb='linea';}
+  if(!sp.gb){const m=/^\s*(?:dame |muestrame |lista(?:do)? de |cuales son )?(?:los |las |que |cuales )?(equipos|maquinas|causas|subconjuntos|productos|turnos|lineas)\b/.exec(q0);
+    if(m&&(sp.ex.having||/\b(mas|menos|con|que)\b/.test(q0))){sp.gb={equipos:'eq',maquinas:'eq',causas:'causa',subconjuntos:'sc',productos:'prod',turnos:'turno',lineas:'linea'}[m[1]];sp.ex.gb=1;}}
+  // límite
+  take(new RegExp(`\\btop\\s*(${A_NUMRE})\\b|\\b(?:los|las)?\\s*(${A_NUMRE})\\s+(?:peores|mejores|principales|primer[oa]s|mayores|equipos|causas|subconjuntos|productos|fallas|paradas)\\b|\\bprimer[oa]s\\s+(${A_NUMRE})\\b`,'g'),(m,a,b,c)=>{const n=aNum(a||b||c);if(!(n>0&&n<=100))return false;sp.limit=n;sp.ex.limit=1;});
+  sp.asc=/\b(menos|menor(?:es)?|minim[oa]s?)\b/.test(q0);
+  // medida
+  if(/%|\bporcentaje\b|\bque parte\b|\bproporcion\b|\bparticipacion\b/.test(q0)){sp.measure='pct';sp.ex.measure=1;}
+  else if(/\b(promedio|en promedio|duracion media|duracion promedio|cuanto duran?|tiempo medio de reparacion)\b/.test(q0)){sp.measure='prom';sp.ex.measure=1;}
+  else if(/\b(cuant[oa]s? (?:horas|minutos|tiempo)|horas|tiempo perdido|minutos perdidos|cuanto (?:tiempo|perdio|perdieron|se perdio))\b/.test(q0)){sp.measure='h';sp.ex.measure=1;}
+  else if(/\b(cuant[oa]s (?:fallas|paradas|eventos|veces|microparadas|microparos|paros|averias|registros)|mas (?:eventos|veces|paradas|fallas|paros|microparadas)|numero de|cantidad de|veces|frecuencia|frecuentes?|mas seguido|conteo|cuantas|cuantos|n de)\b/.test(q0)){sp.measure='n';sp.ex.measure=1;}
+  else if(/\b(tiempo|minutos|duracion)\b/.test(q0)){sp.measure='h';sp.ex.measure=1;}
+  // categoría
+  if(/\b(no programad[oa]s?|sin programacion|falta de demanda|demanda|nst)\b/.test(q0)){sp.cat='nst';sp.ex.cat=1;}
+  else if(/\b(planead[oa]s?|planificad[oa]s?|programad[oa]s?|dpa)\b/.test(q0)){sp.cat='dpa';sp.ex.cat=1;}
+  else if(/\b(extern[oa]s?)\b/.test(q0)){sp.cat='ec';sp.ex.cat=1;}
+  else if(/\b(todas las paradas|todo tipo de paradas?|todas las categorias|cualquier parada)\b/.test(q0)){sp.cat='all';sp.ex.cat=1;}
+  else if(/\b(fallas?|fallos?|internas?|averias?|danos?|fallaron|falla de equipo|se dano|se danaron)\b/.test(q0)){sp.cat='ic';sp.ex.cat=1;}
+  else if(/\b(paradas?|paros?|pararon|detenciones)\b/.test(q0)){sp.cat='stops';sp.ex.cat=1;}
+  if(/\bmicro ?parad|\bmicro ?paros?\b|\bmicroparos?\b/.test(q0)){sp.micro=true;sp.ex.micro=1;if(!sp.ex.cat)sp.cat='ic';}
+  // intención
+  const it=[
+    ['proj',/\b(vuelve|vuelven|volver|volvera|volveran|vuelvan|regresa|regresan|regresar|retorna|retornan|retornar|retorno|recupera|recuperan|recuperar|recuperara|se recupera|cumplira|alcanza(?:ra)?|proyeccion|proyectar|proyecta|cuando (?:cumple|baja|sale|entra))\b/],
+    ['status',/\b(alerta|alertas|critic[oa]s?|cumplen|cumple|cumpliendo|mejorando|fuera de (?:la )?meta|sobre (?:la )?meta|encima de (?:la )?meta|por debajo de (?:la )?meta|bajo (?:la )?meta|recertific\w*|ato|en meta|incumpl\w*|no cumplen?|estatus)\b/],
+    ['kpi',/52 ?-? ?12 ?-? ?4|\b52w\b|\b12w\b|\b4w\b|\bindicador(?:es)?\b|\bconfiabilidad\b/],
+    ['mtbf',/\b(mtbf|mttr|tiempo (?:medio )?entre (?:fallas|paradas)|cada cuanto (?:falla|para|se dana)|tiempo medio de reparacion|confiables?)\b/],
+    ['events',/\b(ultimas? (?:fallas|paradas|eventos|averias|registros)|ultima (?:falla|parada|vez)|bitacora|lista(?:do)? de (?:las )?(?:fallas|paradas|eventos)|detalles? de (?:las )?(?:fallas|paradas)|que (?:le )?paso|que ha pasado|registros? de|eventos? de|muestrame las fallas|cuales fueron las (?:fallas|paradas))\b/],
+    ['resumen',/\b(resumen|como va|como van|como esta|como estan|como vamos|estado general|panorama|informe|reporte general|situacion|que tal)\b/],
+    ['ind',/\b(lef|oee|gly|oae|eficiencia|disponibilidad|rendimiento)\b/],
+    ['compare',/\b(compar\w*|vs|versus|contra la|diferencia entre)\b/],
+    ['prod',/\b(produccion|producido|produjo|produjeron|hectolitros|hl|volumen producido)\b/],
+    ['chg',/\b(cambios? de formato|changeovers?|cambios? de producto|cambios? de referencia)\b/],
+  ];
+  for(const [k,re] of it){if(re.test(q0)){sp.intent=k;sp.ex.intent=1;break;}}
+  if(sp.intent==='kpi'&&/\b(fuera|sobre|encima|alerta|critic|cumpl)/.test(q0))sp.intent='status';
+  if(sp.intent==='compare'&&(sp.ex.gb&&sp.gb!=='linea'))sp.intent=null;
+  const indM=[];for(const k of ['lef','oee','gly','oae'])if(new RegExp('\\b'+k+'\\b').test(q0))indM.push(k);
+  if(!indM.length&&/\b(eficiencia|rendimiento)\b/.test(q0))indM.push('lef','oee');if(!indM.length&&/\bdisponibilidad\b/.test(q0))indM.push('lef');
+  sp.indM=indM;
+  // limpiar palabras de intención y medidas ya interpretadas
+  q=q.replace(/52 ?-? ?12 ?-? ?4|\b(52w|12w|4w|lef|oee|gly|oae|mtbf|mttr|hl|hectolitros|produccion|producido|eficiencia|disponibilidad|rendimiento|resumen|bitacora|compar\w*|vs|versus|proyeccion|vuelv\w*|volv\w*|regres\w*|retorn\w*|recuper\w*|cumple|cumplen|cumplira|alerta|alertas|critic[oa]s?|mejorando|recertific\w*|ato|microparadas?|microparos?|micro|cambios?|formato|changeovers?|si|pierde|programad[oa]s?|planead[oa]s?|planificad[oa]s?|extern[oa]s?|internas?|demanda|nst|dpa|porcentaje|confiabilidad|frecuencia|duracion|promedio|seguido|tendencia|evolucion|largas?|cortas?|grandes?|pequenas?)\b/g,' ');
+  sp.tokens=q.split(/\s+/).filter(t=>t&&!A_STOP.has(t)&&!/^\d{3,}$/.test(t)&&(t.length>1||/\d/.test(t)));
+  if(sp.tokens.length)sp.ex.tokens=1;
+  return sp;
+}
+
+/* ---------- 2) resolver equipos y texto ---------- */
+let A_IDF=null;
+function aIdf(){
+  if(A_IDF)return A_IDF;const df=new Map();let N=0;
+  for(const k of LINEAS){const M=models[k];for(const id of M.eqIds){N++;for(const t of new Set(aEqParts(M.P.dict.eq[id]).map(x=>aStem(x.t))))df.set(t,(df.get(t)||0)+1);}}
+  A_IDF={df,N:Math.max(N,1)};return A_IDF;
+}
+function aTokMatch(qt,nt){
+  if(/\d/.test(qt)||/\d/.test(nt))return qt===nt;
+  if(qt===nt)return true;const a=aStem(qt),b=aStem(nt);if(a===b)return true;
+  if(a.length>=4&&b.length>=4&&(b.startsWith(a)||a.startsWith(b)))return true;return false;
+}
+function aEqParts(name){
+  const out=[];for(const t of aNorm(name).replace(/[_/\-.]/g,' ').split(/\s+/)){if(!t||A_STOP.has(t)||/^l\d+$/.test(t)||t==='linea')continue;out.push({t,o:t});if(A_ABBR[t])for(const x of A_ABBR[t].split(' '))out.push({t:x,o:t});}
+  return out;
+}
+function aMatchEq(M,tokens){
+  if(!tokens.length)return{ids:[],used:new Set(),score:0};
+  const{df,N}=aIdf();let best=0;const sc=[];
+  for(const id of M.eqIds){
+    const parts=aEqParts(M.P.dict.eq[id]);if(!parts.length)continue;const base=new Set(parts.map(x=>x.o));
+    let s=0,alpha=0;const used=new Set(),covered=new Set();let head=false;
+    for(const qt of tokens){let bm=0,bo=null;
+      for(const x of parts){let w=0;const idf=Math.log(1+N/(df.get(aStem(x.t))||1));
+        if(/\d/.test(qt)||/\d/.test(x.t)){if(qt===x.t)w=idf;}
+        else if(qt===x.t||aStem(qt)===aStem(x.t))w=idf*(x.t===x.o?1:0.7);
+        else if(aStem(qt).length>=4&&aStem(x.t).length>=4&&(x.t.startsWith(aStem(qt))||qt.startsWith(aStem(x.t))))w=idf*0.45;
+        if(w>bm){bm=w;bo=x.o;}}
+      if(bm>0){s+=bm;used.add(qt);covered.add(bo);if(!/\d/.test(qt)&&qt.length>=3)alpha++;if(bo===parts[0].o)head=true;}}
+    if(alpha>0){s+=(head?0.6:0)+covered.size/base.size;sc.push({id,s,used});if(s>best)best=s;}
+  }
+  if(!best)return{ids:[],used:new Set(),score:0};
+  const top=sc.filter(x=>x.s>=best*0.97);
+  const used=new Set();top.forEach(x=>x.used.forEach(t=>used.add(t)));
+  return{ids:top.map(x=>x.id),used,score:best};
+}
+const A_TXT=['det','causa','sc','l4','tipo','sub','prod','acc','teq'];
+const A_SYN={limpieza:['limpieza','cleaning','clean','cip','aseo'],aseo:['aseo','limpieza','cleaning'],mantenimiento:['mantenimiento','maintenance'],logistica:['logistica','logistic'],calidad:['calidad','quality'],servicio:['servicio','utilities'],arranque:['arranque','start up','inicio de produccion'],prueba:['prueba','test'],velocidad:['velocidad','speed'],electrica:['electric'],electrico:['electric'],mecanica:['mecanic'],mecanico:['mecanic'],envase:['envase','material retornable','returnable'],botella:['botella'],material:['material']};
+const A_STOPCAT=new Set(['limpieza','aseo','mantenimiento','logistica','calidad','servicio','arranque','prueba']);
+function aTextFilter(M,tokens){
+  // por cada token: banderas por campo de diccionario
+  const P=M.P;const res=[];
+  for(const t of tokens){const st=aStem(t);if(st.length<3)continue;const alts=A_SYN[st]||A_SYN[t]||[st];let any=false;const flags={};
+    for(const f of A_TXT){const L=P.dict[f];const cache=M._nd||(M._nd={});const nd=cache[f]||(cache[f]=L.map(s=>aNorm(s)));const fl=new Uint8Array(L.length);
+      for(let j=0;j<L.length;j++){for(const al of alts){if(nd[j].includes(' '+al)||nd[j].includes(al)&&al.length>=5){fl[j]=1;any=true;break;}}}flags[f]=fl;}
+    if(any)res.push({t,flags});}
+  return res;
+}
+
+/* ---------- 3) contexto de ejecución ---------- */
+function aCtx(sp){
+  const{mx,mn}=aAnchor();
+  let lines=[];const missing=[];
+  for(const r of sp.lineReq||[]){const k=LINEAS.find(x=>x===r||x.endsWith(' '+r));if(k)lines.push(k);else missing.push(r);}
+  const explicitLines=lines.length>0;
+  if(!lines.length)lines=[...LINEAS];
+  if((sp.exclLines||[]).length)lines=lines.filter(k=>!sp.exclLines.some(x=>k===x||k.endsWith(' '+x)));
+  let period=sp.period;
+  if(!period){const n=state.win||12;period={a:Math.max(mn,mondayOf(mx)-7*(n-1)),b:mx,label:mondayOf(mx)-7*(n-1)<=mn?`todo lo cargado (${dstr(mn)} – ${dstr(mx)})`:`últimas ${n} semanas`,def:true};}
+  // equipos + texto
+  let eqBy={},usedTok=new Set(),txt={},eqFound=false;
+  if(sp.tokens&&sp.tokens.length){
+    for(const k of lines){const r=aMatchEq(models[k],sp.tokens);if(r.ids.length){eqBy[k]=r.ids;r.used.forEach(t=>usedTok.add(t));eqFound=true;}}
+    if(eqFound&&!explicitLines){lines=lines.filter(k=>eqBy[k]);}
+    // mantener solo las coincidencias de mejor puntaje global
+    if(eqFound){let best=0;const s={};for(const k of lines){const r=aMatchEq(models[k],sp.tokens);s[k]=r.score||0;if(s[k]>best)best=s[k];}
+      for(const k of lines)if(eqBy[k]&&s[k]<best*0.8&&!explicitLines)delete eqBy[k];
+      if(!explicitLines)lines=lines.filter(k=>eqBy[k]);}
+    const rest=sp.tokens.filter(t=>!usedTok.has(t));
+    let known=new Set();
+    if(rest.length)for(const k of lines){const tf=aTextFilter(models[k],rest);txt[k]=tf;tf.forEach(x=>known.add(x.t));}
+    sp._ignored=rest.filter(t=>!known.has(t));sp._txtTokens=[...known];
+  }
+  const ctx={lines,missing,period,eqBy,eqFound,txt,explicitLines};
+  // categoría por defecto
+  let cat=sp.cat;
+  if(!cat){
+    if((sp._txtTokens||[]).some(t=>A_STOPCAT.has(aStem(t))||A_STOPCAT.has(t)))cat='stops';
+    else if(['tipo','cat'].includes(sp.gb)||sp.intent==='events'&&!/\bfallas?\b|\bfallo/.test(aNorm(sp.raw)))cat='stops';
+    else cat='ic';}
+  ctx.cat=cat;
+  return ctx;
+}
+const A_CATLAB={ic:'fallas de equipo',ec:'causas externas',dpa:'actividades planeadas',nst:'tiempo no programado',stops:'paradas (sin contar no programado)',all:'todas las paradas'};
+function aCatSet(M,cat){
+  const pd=M.P.dict.parada.map(normS);const out=new Set();
+  pd.forEach((s,i)=>{const isI=s.includes('INTERNAL'),isE=s.includes('EXTERNAL'),isD=s.includes('PLANNED'),isN=s.includes('NOT SCHEDULED');
+    if(cat==='all'||(cat==='ic'&&isI)||(cat==='ec'&&isE)||(cat==='dpa'&&isD)||(cat==='nst'&&isN)||(cat==='stops'&&!isN&&s))out.add(i);});
+  return out;
+}
+function aRows(M,sp,ctx){
+  const P=M.P,{a,b}=ctx.period;const cs=aCatSet(M,ctx.cat);
+  const eqs=ctx.eqBy[M.slot]?new Set(ctx.eqBy[M.slot]):null;
+  const tset=(sp.turnos||[]).length?new Set(P.dict.turno.map((s,i)=>sp.turnos.includes(normS(s))?i:-1).filter(i=>i>=0)):null;
+  const tf=ctx.txt[M.slot]||[];const minD=sp.minDur||0;const micro=sp.micro?M.microCode:null;
+  const out=[];
+  for(let i=0;i<P.n;i++){
+    const d=P.day[i];if(d<a||d>b)continue;if(!cs.has(P.parada[i]))continue;
+    if(eqs&&!eqs.has(P.eq[i]))continue;if(tset&&!tset.has(P.turno[i]))continue;
+    if(minD&&P.min[i]<minD)continue;if(micro!=null&&P.clas[i]!==micro)continue;
+    let ok=true;for(const x of tf){let hit=false;for(const f of A_TXT){if(x.flags[f][P[f][i]]){hit=true;break;}}if(!hit){ok=false;break;}}
+    if(ok)out.push(i);
+  }
+  return out;
+}
+function aTAgg(M,sp,ctx,keyFn){
+  const T=M.T,{a,b}=ctx.period;const tset=(sp.turnos||[]).length?sp.turnos:null;const g=new Map();
+  for(let i=0;i<T.n;i++){const d=T.day[i];if(d<a||d>b)continue;const tn=normS(T.dict.turno[T.turno[i]]);if(tset&&!tset.includes(tn))continue;
+    const k=keyFn?keyFn(i,d,tn):'_';let o=g.get(k);if(!o){o={ept:0,ic:0,ec:0,dpa:0,nst:0,total:0,hl:0,nchg:0,chg:0,n:0};g.set(k,o);}
+    for(const f of ['ept','ic','ec','dpa','nst','total','hl','nchg','chg'])o[f]+=T[f][i];o.n++;}
+  return g;
+}
+const aInd=(o,k)=>{if(!o)return null;if(k==='lef')return o.ept+o.ic>0?o.ept/(o.ept+o.ic):null;if(k==='oee'){const d=o.total-o.nst-o.dpa;return d>0?o.ept/d:null;}if(k==='gly'){const d=o.total-o.nst;return d>0?o.ept/d:null;}if(k==='oae')return o.total>0?o.ept/o.total:null;return null;};
+function aDen(M,sp,ctx){const o=aTAgg(M,sp,ctx).get('_');return o?o.ept+o.ic:0;}
+
+/* dimensiones */
+const A_DIM={
+  eq:{lab:'equipo',fn:(M,i)=>M.P.dict.eq[M.P.eq[i]]||'(sin equipo)'},
+  sc:{lab:'subconjunto',fn:(M,i)=>M.P.dict.sc[M.P.sc[i]]||'(sin subconjunto)'},
+  det:{lab:'detalle',fn:(M,i)=>M.P.dict.det[M.P.det[i]]||'(sin detalle)'},
+  causa:{lab:'causa raíz',fn:(M,i)=>M.P.dict.causa[M.P.causa[i]]||'(sin causa raíz)'},
+  tipo:{lab:'tipo de parada',fn:(M,i)=>M.P.dict.tipo[M.P.tipo[i]]||'(sin tipo)'},
+  teq:{lab:'tipo de equipo',fn:(M,i)=>M.P.dict.teq[M.P.teq[i]]||'(sin tipo)'},
+  prod:{lab:'producto',fn:(M,i)=>M.P.dict.prod[M.P.prod[i]]||'(sin producto)'},
+  llen:{lab:'llenadora',fn:(M,i)=>M.P.dict.llen[M.P.llen[i]]||'(sin llenadora)'},
+  clas:{lab:'clasificación',fn:(M,i)=>M.P.dict.clas[M.P.clas[i]]||'(sin clasificar)'},
+  api:{lab:'tipo de parada API',fn:(M,i)=>M.P.dict.api[M.P.api[i]]||'(sin dato)'},
+  cat:{lab:'categoría',fn:(M,i)=>PARADA_ES[normS(M.P.dict.parada[M.P.parada[i]])]||M.P.dict.parada[M.P.parada[i]]},
+  turno:{lab:'turno',fn:(M,i)=>M.P.dict.turno[M.P.turno[i]]||'(sin turno)',time:false},
+  linea:{lab:'línea',fn:(M)=>M.slot},
+  semana:{lab:'semana',fn:(M,i)=>mondayOf(M.P.day[i]),time:true,fmt:v=>wk(v)},
+  mes:{lab:'mes',fn:(M,i)=>{const d=new Date(M.P.day[i]*864e5);return d.getUTCFullYear()*12+d.getUTCMonth();},time:true,fmt:v=>MESES[v%12]+' '+Math.floor(v/12)},
+  dia:{lab:'día',fn:(M,i)=>M.P.day[i],time:true,fmt:v=>dstr(v)},
+  diaSemana:{lab:'día de la semana',fn:(M,i)=>(M.P.day[i]+3)%7,time:true,fmt:v=>['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'][v]},
+  hora:{lab:'hora',fn:(M,i)=>M.P.hini[i]<0?null:Math.floor(M.P.hini[i])%24,time:true,fmt:v=>String(v).padStart(2,'0')+':00'},
+};
+const A_MEAS={h:{lab:'horas perdidas',f:v=>hrs(v)},n:{lab:'eventos',f:v=>nf(v)},prom:{lab:'minutos por evento',f:v=>nf(v,1)+' min'},pct:{lab:'% del tiempo de carga',f:v=>pct(v)}};
+
+/* ---------- 4) respuestas ---------- */
+function aLinesLabel(ctx){return ctx.lines.length===LINEAS.length&&LINEAS.length>1?'todas las líneas':ctx.lines.join(', ');}
+function aEqLabel(ctx){const n=[];for(const k of ctx.lines)for(const id of ctx.eqBy[k]||[])n.push(models[k].P.dict.eq[id]+(ctx.lines.length>1?` (${k})`:''));return n;}
+function aChips(sp,ctx,extra){
+  const c=[];c.push(['Línea',aLinesLabel(ctx)]);
+  const eqs=aEqLabel(ctx);if(eqs.length)c.push(['Equipo',eqs.length>3?eqs.slice(0,3).join(', ')+` y ${eqs.length-3} más`:eqs.join(', ')]);
+  if(extra!=='noPeriod')c.push(['Periodo',ctx.period.label]);
+  if(extra!=='noCat'&&extra!=='noPeriod')c.push(['Tipo',A_CATLAB[ctx.cat]+(sp.micro?' · microparadas':'')]);
+  if((sp.turnos||[]).length)c.push(['Turno',sp.turnos.map(t=>t.replace('TURNO ','')).join(', ')]);
+  if((sp._txtTokens||[]).length)c.push(['Contiene',sp._txtTokens.join(' + ')]);
+  if(sp.minDur)c.push(['Duración',`≥ ${nf(sp.minDur)} min`]);
+  if(sp.gb)c.push(['Agrupado por',A_DIM[sp.gb]?.lab||sp.gb]);
+  if(sp.having)c.push(['Solo con',`≥ ${sp.having.u==='h'?hrs(sp.having.v):sp.having.u==='n'?nf(sp.having.v)+' eventos':nf(sp.having.v,2)+' %'}`]);
+  if((sp.exclLines||[]).length)c.push(['Sin',sp.exclLines.join(', ')]);
+  return c;
+}
+function aAnswer(sp){
+  if(!LINEAS.length)return{html:'Todavía no hay datos. Sube el reporte BD en <b>Cargar reportes</b> y vuelve a preguntar.'};
+  if(sp.intent==='hola')return{html:'¡Hola! Pregúntame lo que quieras sobre las paradas, los equipos o los tiempos de las líneas. Escribe <b>ayuda</b> para ver ejemplos.'};
+  if(sp.intent==='help')return aHelp();
+  const ctx=aCtx(sp);
+  if(ctx.missing.length&&!ctx.explicitLines)return{html:`No tengo datos de ${ctx.missing.join(', ')}. Las líneas cargadas son: <b>${LINEAS.join(', ')}</b>.`};
+  if(sp.tokens&&sp.tokens.length&&!ctx.eqFound&&!(sp._txtTokens||[]).length&&!sp.ex.intent&&!sp.ex.gb&&!sp.ex.measure&&!sp.ex.lines&&!sp.ex.period&&!sp.ex.cat)
+    return{html:`No entendí la pregunta. No reconozco <b>${esc(sp.tokens.join(' '))}</b> como equipo, línea, fecha ni texto de las paradas.`,help:true};
+  let r;
+  switch(sp.intent){
+    case 'proj':r=aProj(sp,ctx);break;
+    case 'status':r=aStatus(sp,ctx);break;
+    case 'kpi':r=aKpi(sp,ctx);break;
+    case 'mtbf':r=aMtbf(sp,ctx);break;
+    case 'events':r=aEvents(sp,ctx);break;
+    case 'resumen':r=aResumen(sp,ctx);break;
+    case 'compare':r=aCompare(sp,ctx);break;
+    case 'ind':r=aIndic(sp,ctx);break;
+    case 'prod':r=aProd(sp,ctx,'hl');break;
+    case 'chg':r=aProd(sp,ctx,'chg');break;
+    default:
+      if(!sp.ex.gb&&!sp.ex.measure&&!sp.ex.cat&&!sp.ex.tokens&&!sp.micro&&(sp.ex.lines||sp.ex.period))r=aResumen(sp,ctx);
+      else r=aAgg(sp,ctx);
+  }
+  if(ctx.missing.length)r.note=(r.note||'')+` No hay datos de ${ctx.missing.join(', ')}.`;
+  if((sp._ignored||[]).length)r.note=(r.note||'')+` No usé: “${sp._ignored.join(', ')}”.`;
+  return r;
+}
+function aHelp(){
+  const ex=aSuggestions(12);
+  return{html:`Puedo responder preguntas sobre <b>fallas, paradas, equipos, causas, subconjuntos, turnos, horas del día, productos, LEF/OEE/GLY/OAE, producción, cambios de formato, el 52-12-4, estados ATO y proyecciones</b>. Entiendo líneas (L5, “línea 8”, “tren 9”), fechas (“semana 41”, “octubre”, “del 5 al 12 de octubre”, “últimas 4 semanas”, “ayer”), turnos y nombres de equipos aunque los escribas incompletos. Si empiezas con “y…”, uso el contexto de la pregunta anterior.<br><br>Prueba con:`,sug:ex};
+}
+
+/* respuesta genérica: medida × agrupación */
+function aAgg(sp,ctx){
+  const meas=sp.measure||'h';const dim=sp.gb?A_DIM[sp.gb]:null;const multi=ctx.lines.length>1;
+  const g=new Map();let tH=0,tN=0,den=0;const byLine={};
+  for(const k of ctx.lines){const M=models[k];const rows=aRows(M,sp,ctx);const dn=meas==='pct'||!dim?aDen(M,sp,ctx):0;den+=dn;let lh=0;
+    for(const i of rows){const h=M.P.min[i]/60;tH+=h;tN++;lh+=h;
+      if(dim){let key=dim.fn(M,i);if(key==null)continue;const lk=(multi&&['eq','sc'].includes(sp.gb))?k+'|'+key:key;let o=g.get(lk);if(!o){o={key,line:multi&&['eq','sc'].includes(sp.gb)?k:null,h:0,n:0};g.set(lk,o);}o.h+=h;o.n++;}}
+    byLine[k]={h:lh,n:rows.length,den:dn};}
+  const val=o=>meas==='h'?o.h:meas==='n'?o.n:meas==='prom'?(o.n?o.h*60/o.n:0):(den>0?o.h/den:0);
+  const M0=A_MEAS[meas];const chips=aChips(sp,ctx);chips.push(['Medida',M0.lab]);
+  const what=(sp.micro?'microparadas':ctx.cat==='ic'?'fallas':'paradas');
+  if(!tN)return{html:`No encontré ${what} con esos filtros (${esc(ctx.period.label)}).`+aOther(sp,ctx),chips};
+  const tot={h:tH,n:tN};
+  if(!dim){
+    let html=`${multi?`En <b>${esc(aLinesLabel(ctx))}</b>`:`En la <b>${esc(ctx.lines[0])}</b>`}${aEqLabel(ctx).length?`, para <b>${esc(aEqLabel(ctx).slice(0,3).join(', '))}</b>`:''}, ${esc(ctx.period.label)}: <b>${nf(tN)} ${what}</b> que suman <b>${hrs(tH)}</b> (${nf(tH*60/tN,1)} min en promedio).`;
+    if(den>0)html+=` Equivale al <b>${pct(tH/den)}</b> del tiempo de carga (EPT + causas internas).`;
+    let table=null,chart=null;
+    if(multi){const rows=ctx.lines.map(k=>[k,nf(byLine[k].n),hrs(byLine[k].h),byLine[k].n?nf(byLine[k].h*60/byLine[k].n,1):'–',byLine[k].den?pct(byLine[k].h/byLine[k].den):'–']);table={cols:['Línea','Eventos','Horas','Min/evento','% tiempo de carga'],rows,num:[1,2,3,4]};}
+    // serie semanal de contexto
+    const wkm=new Map();for(const k of ctx.lines){const M=models[k];for(const i of aRows(M,sp,ctx)){const w=mondayOf(M.P.day[i]);const o=wkm.get(w)||{h:0,n:0};o.h+=M.P.min[i]/60;o.n++;wkm.set(w,o);}}
+    const ws=[...wkm.keys()].sort((a,b)=>a-b);
+    if(ws.length>1)chart={kind:'bar',title:'Por semana',x:ws.map(w=>wk(w)),series:[{name:M0.lab,data:ws.map(w=>+val(wkm.get(w)).toFixed(4))}],fmt:meas};
+    return{html,table,chart,chips,actions:aActions(ctx)};
+  }
+  let items=[...g.values()].map(o=>({...o,v:val(o)}));
+  if(!items.length)return{html:`No hay datos de ${dim.lab} para esos filtros${sp.gb==='hora'?' (el reporte no trae hora de inicio para esas paradas)':''}.`,chips};
+  let blank=null;
+  if(!dim.time&&items.every(o=>typeof o.key==='string'&&o.key.startsWith('(sin'))&&!sp._fb){const nx={causa:'sc',sc:'det',eq:'sc',prod:'sc'}[sp.gb];
+    if(nx){const r=aAgg({...sp,gb:nx,_fb:1},ctx);r.html=`Ninguno de estos ${nf(tN)} eventos tiene ${dim.lab} registrad${/causa|clasificaci/.test(dim.lab)?'a':'o'}, así que te muestro el desglose por <b>${A_DIM[nx].lab}</b>. `+r.html;return r;}}
+  if(!dim.time){const bl=items.filter(o=>typeof o.key==='string'&&o.key.startsWith('(sin'));if(bl.length&&bl.length<items.length){items=items.filter(o=>!bl.includes(o));blank={h:bl.reduce((s,o)=>s+o.h,0),n:bl.reduce((s,o)=>s+o.n,0),lab:bl[0].key};}}
+  if(sp.having){const hv=sp.having;items=items.filter(o=>hv.u==='h'?o.h>=hv.v:hv.u==='n'?o.n>=hv.v:(den>0?o.h/den*100>=hv.v:true));if(!items.length)return{html:`Ningún ${dim.lab} supera ${hv.u==='h'?hrs(hv.v):hv.u==='n'?nf(hv.v)+' eventos':nf(hv.v,2)+' %'} con esos filtros (${esc(ctx.period.label)}).`,chips};}
+  if(dim.time)items.sort((a,b)=>a.key-b.key);else items.sort((a,b)=>sp.asc?a.v-b.v:b.v-a.v);
+  const lab=o=>(dim.fmt?dim.fmt(o.key):o.key)+(o.line?` (${o.line})`:'');
+  const lim=sp.limit||(dim.time||sp.having?999:10);
+  const shown=dim.time?items:items.slice(0,lim);
+  let html;
+  if(dim.time){const mxI=items.reduce((m,o)=>o.v>m.v?o:m,items[0]);const mnI=items.reduce((m,o)=>o.v<m.v?o:m,items[0]);
+    html=`${esc(capit(what))} por <b>${dim.lab}</b> en ${esc(aLinesLabel(ctx))} (${esc(ctx.period.label)}). Total: <b>${hrs(tH)}</b> en <b>${nf(tN)}</b> eventos. El valor más alto fue <b>${esc(lab(mxI))}</b> con ${M0.f(mxI.v)}${items.length>2?` y el más bajo <b>${esc(lab(mnI))}</b> con ${M0.f(mnI.v)}`:''}.`;}
+  else{const f=shown[0];const share=meas==='n'?f.n/tN:f.h/(tH||1);
+    html=`${sp.asc?'Con menos':'Con más'} ${M0.lab} por ${dim.lab}: <b>${esc(lab(f))}</b> con <b>${M0.f(f.v)}</b>${meas!=='prom'&&meas!=='pct'?` (${pct(share,0)} del total)`:''}.`;
+    if(sp.having)html=`<b>${items.length}</b> ${items.length===1?dim.lab:(dim.lab.endsWith('z')?dim.lab.slice(0,-1)+'ces':dim.lab+'s')} con ${sp.having.u==='h'?hrs(sp.having.v):sp.having.u==='n'?nf(sp.having.v)+' eventos':nf(sp.having.v,2)+' %'} o más. `+html;
+    if(shown.length>1)html+=` Le sigue${shown.length>2?'n':''} ${shown.slice(1,3).map(o=>`${esc(lab(o))} (${M0.f(o.v)})`).join(' y ')}.`;
+    html+=` Total ${what}: ${hrs(tH)} en ${nf(tN)} eventos, ${esc(ctx.period.label)}.`;
+    if(blank)html+=` <span class="neutral">Además, ${hrs(blank.h)} (${pct(blank.h/(tH||1),0)}) en ${nf(blank.n)} eventos no tienen ${dim.lab} registrad${/causa|clasificaci/.test(dim.lab)?'a':'o'}.</span>`;}
+  const cols=[capit(dim.lab),'Horas','Eventos','Min/evento','% del total'];if(meas==='pct')cols.push('% tiempo de carga');
+  const table={cols,rows:shown.map(o=>{const r=[lab(o),hrs(o.h),nf(o.n),nf(o.h*60/o.n,1),pct(o.h/(tH||1),1)];if(meas==='pct')r.push(pct(den>0?o.h/den:0));return r;}),num:[1,2,3,4,5]};
+  if(blank){const r=[blank.lab,hrs(blank.h),nf(blank.n),nf(blank.h*60/blank.n,1),pct(blank.h/(tH||1),1)];if(meas==='pct')r.push(pct(den>0?blank.h/den:0));table.rows.push(r);}
+  const cs=dim.time?shown:shown.slice(0,12);
+  const chart={kind:dim.time&&['semana','dia','mes'].includes(sp.gb)?'line':'bar',horiz:!dim.time,title:'',x:cs.map(lab),series:[{name:M0.lab,data:cs.map(o=>+o.v.toFixed(4))}],fmt:meas,click:sp.gb==='eq'?cs.map(o=>({line:o.line||ctx.lines.find(k=>models[k].eqs.some(e=>e.name===o.key)),eq:o.key})):null};
+  return{html,table,chart,chips,actions:aActions(ctx,sp.gb==='eq'&&shown[0]?{eq:shown[0].key,line:shown[0].line||ctx.lines.find(k=>models[k].eqs.some(e=>e.name===shown[0].key))}:null)};
+}
+const capit=s=>s?s[0].toUpperCase()+s.slice(1):s;
+function aActions(ctx,eqPick){
+  const a=[];
+  const eqs=[];for(const k of ctx.lines)for(const id of ctx.eqBy[k]||[]){const nm=models[k].P.dict.eq[id];if(models[k].eqs.some(e=>e.name===nm))eqs.push({line:k,eq:nm});}
+  if(eqPick&&eqPick.line)eqs.unshift(eqPick);
+  if(eqs.length)a.push({label:`Abrir ${eqs[0].eq} en el tablero`,line:eqs[0].line,eq:eqs[0].eq,view:'equipo'});
+  else if(ctx.lines.length===1)a.push({label:`Ver resumen de la ${ctx.lines[0]}`,line:ctx.lines[0],view:'resumen'});
+  return a;
+}
+function aEndFor(M,sp){if(sp.weekCut!=null||(sp.period&&sp.ex.period&&!sp.weeksN)){const d=sp.weekCut??sp.period.b;let e=M.nW-1;while(e>0&&M.weeks[e]>d)e--;return e;}return M.nW-1;}
+function aEqObjs(ctx){const out=[];for(const k of ctx.lines){const M=models[k];for(const id of ctx.eqBy[k]||[]){const nm=M.P.dict.eq[id];const e=M.eqs.find(x=>x.name===nm);out.push({k,M,nm,e});}}return out;}
+function aKpi(sp,ctx){
+  const chips=aChips({...sp,gb:null},ctx,'noPeriod');const eqs=aEqObjs(ctx);
+  if(eqs.length){
+    const rows=[];let html='';
+    for(const x of eqs){const end=aEndFor(x.M,sp);
+      if(!x.e){rows.push([x.nm,x.k,'0,00 %','0,00 %','0,00 %','Sin fallas','–']);continue;}
+      const r=eqRow(x.M,x.e,end);rows.push([x.nm,x.k,pct(r.p52),pct(r.p12),pct(r.p4),STATUS[r.st].label,r.ret===0?'ya cumple':r.ret==null?'no al ritmo actual':`en ${r.ret} sem`]);
+      if(eqs.length<=3)html+=`<b>${esc(x.nm)}</b> (${x.k}, corte ${wk(x.M.weeks[end])}): 52W <b>${pct(r.p52)}</b> · 12W <b>${pct(r.p12)}</b> · 4W <b>${pct(r.p4)}</b> → ${STATUS[r.st].label}. `;}
+    if(eqs.length>3)html=`Encontré ${eqs.length} equipos que coinciden. Este es su 52-12-4:`;
+    const w=eqs[0].M.nW;if(w<52)html+=` <span class="neutral">Hay ${w} semanas de datos, así que 52W y 12W se calculan con lo disponible.</span>`;
+    return{html,table:{cols:['Equipo','Línea','52W','12W','4W','Estado','Vuelve a meta'],rows,num:[2,3,4]},chips,actions:aActions(ctx)};
+  }
+  const key=sp.weeksN===52?'p52':sp.weeksN===4?'p4':'p12';const kl={p52:'52W',p12:'12W',p4:'4W'}[key];
+  let all=[];for(const k of ctx.lines){const M=models[k];const end=aEndFor(M,sp);all.push(...allRows(M,end).map(r=>({...r,k})));}
+  all.sort((a,b)=>sp.asc?a[key]-b[key]:b[key]-a[key]);const lim=sp.limit||15;const sh=all.slice(0,lim);
+  const over=all.filter(r=>r[key]>META).length;
+  const html=`Ranking por <b>${kl}</b> en ${esc(aLinesLabel(ctx))}: <b>${over}</b> de ${all.length} equipos superan la meta de 0,5 %. ${sh[0]?`El ${sp.asc?'mejor':'peor'} es <b>${esc(sh[0].e.name)}</b>${ctx.lines.length>1?` (${sh[0].k})`:''} con ${pct(sh[0][key])}.`:''}`;
+  return{html,table:{cols:['Equipo','Línea','52W','12W','4W','Horas 12W','Estado'],rows:sh.map(r=>[r.e.name,r.k,pct(r.p52),pct(r.p12),pct(r.p4),hrs(r.h12),STATUS[r.st].label]),num:[2,3,4,5]},
+    chart:{kind:'bar',horiz:true,x:sh.slice(0,12).map(r=>r.e.name+(ctx.lines.length>1?` (${r.k})`:'')),series:[{name:kl,data:sh.slice(0,12).map(r=>+r[key].toFixed(5))}],fmt:'pct',meta:true,click:sh.slice(0,12).map(r=>({line:r.k,eq:r.e.name}))},chips,actions:aActions(ctx)};
+}
+function aStatus(sp,ctx){
+  const q=aNorm(sp.raw);const want=new Set();let over=false,okOnly=false;
+  if(/alerta/.test(q))want.add('ale');if(/critic/.test(q))want.add('cri');if(/mejorando/.test(q))want.add('mej');
+  if(/no cumpl|incumpl/.test(q)){want.add('ale');want.add('cri');want.add('mej');}
+  else if(/cumpl|recertific|\bato\b|en meta|bajo (la )?meta|por debajo/.test(q)&&!want.size){want.add('ok');okOnly=true;}
+  if(/fuera de|sobre (la )?meta|encima/.test(q)){over=true;}
+  let all=[];for(const k of ctx.lines){const M=models[k];const end=aEndFor(M,sp);all.push(...allRows(M,end).map(r=>({...r,k})));}
+  let sel=over?all.filter(r=>r.p12>META):all.filter(r=>want.size?want.has(r.st):r.st!=='ok');
+  if(ctx.eqFound){const names=new Set(aEqObjs(ctx).map(x=>x.k+'|'+x.nm));sel=sel.filter(r=>names.has(r.k+'|'+r.e.name));}
+  sel.sort((a,b)=>b.p12-a.p12);
+  const desc=over?'sobre la meta en 12W':/no cumpl|incumpl/.test(q)?'que no cumplen la meta':okOnly?'que cumplen (52W y 12W bajo 0,5 %)':[...want].map(s=>STATUS[s].label.toLowerCase()).join(' o ')||'que no cumplen';
+  const cnt={ok:0,mej:0,ale:0,cri:0};all.forEach(r=>cnt[r.st]++);
+  const minW=Math.min(...ctx.lines.map(k=>models[k].nW));
+  let html=sel.length?`<b>${sel.length}</b> equipo${sel.length>1?'s':''} ${desc} en ${esc(aLinesLabel(ctx))}${okOnly?'':`: ${sel.slice(0,5).map(r=>`<b>${esc(r.e.name)}</b>${ctx.lines.length>1?` (${r.k})`:''} ${pct(r.p12)}`).join(', ')}${sel.length>5?'…':''}`}.`:`Ningún equipo ${desc} en ${esc(aLinesLabel(ctx))}.`;
+  html+=` <span class="neutral">Estados en total: ${cnt.ok} cumplen · ${cnt.mej} mejorando · ${cnt.ale} en alerta · ${cnt.cri} críticos.${minW<13?` Con solo ${minW} semanas de datos el 52W y el 12W son casi iguales, por eso es raro ver equipos en “alerta” o “mejorando”.`:''}</span>`;
+  return{html,table:sel.length?{cols:['Equipo','Línea','52W','12W','4W','Estado','Vuelve a meta'],rows:sel.slice(0,sp.limit||60).map(r=>[r.e.name,r.k,pct(r.p52),pct(r.p12),pct(r.p4),STATUS[r.st].label,r.ret===0?'ya cumple':r.ret==null?'no al ritmo actual':`en ${r.ret} sem`]),num:[2,3,4]}:null,chips:aChips({...sp,gb:null},ctx,'noPeriod'),actions:aActions(ctx)};
+}
+function aProj(sp,ctx){
+  const chips=aChips(sp,ctx,'noPeriod');let eqs=aEqObjs(ctx).filter(x=>x.e);
+  if(!eqs.length){
+    let all=[];for(const k of ctx.lines){const M=models[k];const end=M.nW-1;all.push(...allRows(M,end).filter(r=>r.p12>META).map(r=>({...r,k,M,end})));}
+    all.sort((a,b)=>b.p12-a.p12);
+    if(!all.length)return{html:`Ningún equipo está sobre la meta en 12W en ${esc(aLinesLabel(ctx))}.`,chips};
+    const rows=all.map(r=>{const h=sp.projH??r.h4;const k=projReturn(r.M,r.e,r.end,h);const k0=projReturn(r.M,r.e,r.end,0);return[r.e.name,r.k,pct(r.p12),nf(h*60,0)+' min/sem',k==null?'no vuelve':`${k} sem · ${wk(r.M.weeks[r.end]+7*k)}`,k0==null?'–':`${k0} sem`];});
+    return{html:`${all.length===1?'Este es el <b>único</b> equipo':`Estos son los <b>${all.length}</b> equipos`} sobre la meta en 12W y cuándo ${all.length===1?'volvería':'volverían'} a 0,5 %${sp.projH!=null?` si pierden ${nf(sp.projH*60,0)} min por semana`:' al ritmo de las últimas 4 semanas'}.`,table:{cols:['Equipo','Línea','12W hoy','Pérdida supuesta','Vuelve a meta','Sin nuevas fallas'],rows,num:[2,3]},chips};
+  }
+  const out=[];let chart=null;
+  for(const x of eqs.slice(0,6)){const end=x.M.nW-1;const r=eqRow(x.M,x.e,end);const h=sp.projH??r.h4;const k=projReturn(x.M,x.e,end,h);const d4=den4(x.M,end);
+    let t;if(k===0)t=`<b>${esc(x.nm)}</b> (${x.k}) ya está en meta: 12W ${pct(r.p12)}. Para mantenerse no debe pasar de unos <b>${nf(META*d4*60,0)} min/sem</b> de falla.`;
+    else if(k==null)t=`Perdiendo ${nf(h*60,0)} min/sem, <b>${esc(x.nm)}</b> (${x.k}) <b>no vuelve</b> a la meta: el 12W se quedaría en ${pct(h/(d4||1))}. Necesita bajar de <b>${nf(META*d4*60,0)} min/sem</b>.`;
+    else t=`Perdiendo ${nf(h*60,0)} min/sem${sp.projH==null?' (su promedio de las últimas 4 semanas)':''}, <b>${esc(x.nm)}</b> (${x.k}) vuelve a 12W ≤ 0,5 % en <b>${k} semana${k>1?'s':''}</b>: <b>${wk(x.M.weeks[end]+7*k,true)}</b>.`;
+    out.push(t);
+    if(!chart){const K=16;const hist=[],xs=[];for(let w=Math.max(0,end-11);w<=end;w++){xs.push(wk(x.M.weeks[w]));hist.push(kpiEq(x.M,x.e,w,12));}const nh=xs.length;for(let j=1;j<=K;j++)xs.push(wk(x.M.weeks[end]+7*j));
+      const pr=projSeries(x.M,x.e,end,h,K),p0=projSeries(x.M,x.e,end,0,K);
+      chart={kind:'line',x:xs,series:[{name:'12W real',data:[...hist,...Array(K).fill(null)]},{name:`${nf(h*60,0)} min/sem`,data:[...Array(nh-1).fill(null),hist[nh-1],...pr],dash:true},{name:'Sin nuevas fallas',data:[...Array(nh-1).fill(null),hist[nh-1],...p0],dash:true}],fmt:'pct',meta:true};}}
+  return{html:out.join('<br>'),chart,chips,actions:aActions(ctx)};
+}
+function aMtbf(sp,ctx){
+  const chips=aChips(sp,ctx);const multi=ctx.lines.length>1;const items=[];
+  for(const k of ctx.lines){const M=models[k];const ept=(aTAgg(M,sp,ctx).get('_')||{ept:0}).ept;const g=new Map();
+    for(const i of aRows(M,sp,ctx)){const nm=M.P.dict.eq[M.P.eq[i]];if(!nm)continue;const o=g.get(nm)||{h:0,n:0};o.h+=M.P.min[i]/60;o.n++;g.set(nm,o);}
+    for(const [nm,o] of g)items.push({k,nm,...o,mttr:o.h*60/o.n,mtbf:ept/o.n});}
+  if(!items.length)return{html:`No hay fallas con esos filtros (${esc(ctx.period.label)}).`,chips};
+  const best=/\b(mas confiables?|mejor(?:es)?|menos fall\w*|mayor mtbf)\b/.test(aNorm(sp.raw));
+  items.sort((a,b)=>best?b.mtbf-a.mtbf:a.mtbf-b.mtbf);const sh=items.slice(0,sp.limit||15);
+  const one=ctx.eqFound&&items.length<=3;
+  const html=one?items.map(x=>`<b>${esc(x.nm)}</b> (${x.k}): ${nf(x.n)} fallas en ${esc(ctx.period.label)} · <b>MTTR ${nf(x.mttr,1)} min</b> por falla · <b>MTBF ${nf(x.mtbf,1)} h</b> de producción entre fallas.`).join('<br>')
+    :`${best?'Equipos más confiables (mayor tiempo de producción entre fallas, entre los que fallaron)':'Equipos que fallan más seguido (menor tiempo de producción entre fallas)'} en ${esc(aLinesLabel(ctx))}, ${esc(ctx.period.label)}. El primero es <b>${esc(sh[0].nm)}</b>${multi?` (${sh[0].k})`:''}: falla cada <b>${nf(sh[0].mtbf,1)} h</b> de producción y cada falla dura ${nf(sh[0].mttr,1)} min en promedio.${best?' Los equipos sin ninguna falla en el periodo no aparecen.':''}`;
+  return{html,table:{cols:['Equipo','Línea','Fallas','Horas','MTTR (min)','MTBF (h prod.)'],rows:sh.map(x=>[x.nm,x.k,nf(x.n),hrs(x.h),nf(x.mttr,1),nf(x.mtbf,1)]),num:[2,3,4,5]},chips,note:'MTTR = minutos promedio por falla. MTBF = horas de producción efectiva (EPT) de la línea ÷ número de fallas (aproximado).',actions:aActions(ctx)};
+}
+function aOther(sp,ctx){if(ctx.cat==='all')return'';const by={};let n=0;for(const k of ctx.lines){const M=models[k];for(const i of aRows(M,sp,{...ctx,cat:'all'})){const c=PARADA_ES[normS(M.P.dict.parada[M.P.parada[i]])]||'otras';by[c]=(by[c]||0)+M.P.min[i]/60;n++;}}
+  return n?` Sí hubo ${nf(n)} paradas de otro tipo: ${Object.entries(by).sort((a,b)=>b[1]-a[1]).map(([c,h])=>`${c.toLowerCase()} ${hrs(h)}`).join(', ')}.`:' Tampoco hay paradas de otro tipo en esas fechas.';}
+function aEvents(sp,ctx){
+  const chips=aChips(sp,ctx);const all=[];
+  for(const k of ctx.lines){const M=models[k];for(const i of aRows(M,sp,ctx))all.push({k,M,i});}
+  if(!all.length)return{html:`No encontré ${A_CATLAB[ctx.cat]} con esos filtros (${esc(ctx.period.label)}).`+aOther(sp,ctx),chips};
+  all.sort((a,b)=>b.M.P.day[b.i]-a.M.P.day[a.i]||b.M.P.hini[b.i]-a.M.P.hini[a.i]);
+  const lim=sp.limit||(sp.minDur?40:20);const sh=all.slice(0,lim);
+  const hh=h=>h<0?'':' '+String(Math.floor(h)).padStart(2,'0')+':'+String(Math.round((h%1)*60)%60).padStart(2,'0');
+  const tot=all.reduce((s,x)=>s+x.M.P.min[x.i],0);
+  return{html:`Encontré <b>${nf(all.length)}</b> eventos (${hrs(tot/60)}) en ${esc(ctx.period.label)}. Te muestro los ${sh.length} más recientes${all.length>lim?`; puedes acotar con fechas o un equipo${sp.minDur?'':', o pedir solo las “de más de 10 min”'}`:''}.`,
+    table:{cols:['Fecha','Línea','Turno','Equipo','Subconjunto','Min','Causa raíz','Detalle'],rows:sh.map(({k,M,i})=>{const P=M.P;return[dstr(P.day[i])+hh(P.hini[i]),k,P.dict.turno[P.turno[i]],P.dict.eq[P.eq[i]]||'–',P.dict.sc[P.sc[i]]||'–',nf(P.min[i],1),P.dict.causa[P.causa[i]]||'–',P.dict.det[P.det[i]]||'–'];}),num:[5],wide:true},chips,actions:aActions(ctx)};
+}
+function aResumen(sp,ctx){
+  const chips=aChips(sp,ctx,'noCat');const parts=[];const rows=[];
+  for(const k of ctx.lines){const M=models[k];const t=aTAgg(M,sp,ctx).get('_');const c2={...ctx,cat:'ic'};const r=aRows(M,sp,c2);
+    let h=0;const ge=new Map(),gc=new Map();for(const i of r){const x=M.P.min[i]/60;h+=x;const e=M.P.dict.eq[M.P.eq[i]]||'(sin equipo)';ge.set(e,(ge.get(e)||0)+x);const c=M.P.dict.causa[M.P.causa[i]]||'(sin causa raíz)';gc.set(c,(gc.get(c)||0)+x);}
+    const te=[...ge].filter(x=>!x[0].startsWith('(sin')).sort((a,b)=>b[1]-a[1]),tc=[...gc].filter(x=>!x[0].startsWith('(sin')).sort((a,b)=>b[1]-a[1]);
+    const ks=allRows(M,M.nW-1);const over=ks.filter(x=>x.p12>META);
+    rows.push([k,pct(aInd(t,'lef'),1),pct(aInd(t,'oee'),1),hrs(h),nf(r.length),`${over.length} / ${ks.length}`,te[0]?`${te[0][0]} (${hrs(te[0][1])})`:'–']);
+    parts.push(`<b>${k}</b>: LEF ${pct(aInd(t,'lef'),1)}, OEE ${pct(aInd(t,'oee'),1)}, ${hrs(h)} de fallas en ${nf(r.length)} eventos. Equipo con más horas: ${te[0]?`<b>${esc(te[0][0])}</b> (${hrs(te[0][1])})`:'–'}. Causa raíz principal: ${tc[0]?esc(tc[0][0]):'–'}. Equipos sobre meta 12W: <b>${over.length}</b>${over.length?` (${over.slice(0,3).map(x=>esc(x.e.name)).join(', ')}${over.length>3?'…':''})`:''}.`);}
+  return{html:`Resumen ${esc(ctx.period.label)}:<br>`+parts.join('<br>'),table:ctx.lines.length>1?{cols:['Línea','LEF','OEE','Horas fallas','Fallas','Sobre meta 12W','Equipo con más horas'],rows,num:[1,2,3,4]}:null,chips,actions:aActions(ctx)};
+}
+function aCompare(sp,ctx){
+  if(ctx.lines.length<2&&!ctx.explicitLines)ctx.lines=[...LINEAS];
+  const chips=aChips(sp,ctx,'noCat');const rows=[];const lefs=[];
+  for(const k of ctx.lines){const M=models[k];const t=aTAgg(M,sp,ctx).get('_');const r=aRows(M,sp,{...ctx,cat:'ic'});let h=0;for(const i of r)h+=M.P.min[i]/60;
+    const ks=allRows(M,M.nW-1);rows.push([k,pct(aInd(t,'lef'),1),pct(aInd(t,'oee'),1),pct(aInd(t,'gly'),1),pct(aInd(t,'oae'),1),nf(t?t.hl:0,0),hrs(h),nf(r.length),`${ks.filter(x=>x.p12>META).length} / ${ks.length}`]);lefs.push(aInd(t,'lef'));}
+  const best=ctx.lines[lefs.indexOf(Math.max(...lefs.map(v=>v??-1)))];
+  return{html:`Comparativo de ${esc(aLinesLabel(ctx))} (${esc(ctx.period.label)}). Mejor LEF: <b>${best}</b>.`,table:{cols:['Línea','LEF','OEE','GLY','OAE','Producción (hL)','Horas fallas','Fallas','Sobre meta 12W'],rows,num:[1,2,3,4,5,6,7]},
+    chart:{kind:'bar',x:ctx.lines,series:[{name:'LEF',data:lefs.map(v=>v==null?null:+v.toFixed(4))}],fmt:'pct'},chips};
+}
+function aTKey(sp,M){
+  const gb=sp.gb;
+  if(gb==='semana')return{lab:'semana',fn:(i,d)=>mondayOf(d),fmt:v=>wk(v),time:true};
+  if(gb==='mes')return{lab:'mes',fn:(i,d)=>{const x=new Date(d*864e5);return x.getUTCFullYear()*12+x.getUTCMonth();},fmt:v=>MESES[v%12]+' '+Math.floor(v/12),time:true};
+  if(gb==='dia')return{lab:'día',fn:(i,d)=>d,fmt:v=>dstr(v),time:true};
+  if(gb==='diaSemana')return{lab:'día de la semana',fn:(i,d)=>(d+3)%7,fmt:v=>['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'][v],time:true};
+  if(gb==='turno')return{lab:'turno',fn:(i,d,tn)=>tn,fmt:v=>capit(v.toLowerCase()),time:true};
+  return null;
+}
+function aIndic(sp,ctx){
+  const chips=aChips(sp,ctx,'noCat');const mets=sp.indM.length?sp.indM:['lef'];const multi=ctx.lines.length>1;const tk=aTKey(sp);
+  if(!tk){
+    const rows=[];const tot={ept:0,ic:0,ec:0,dpa:0,nst:0,total:0,hl:0};
+    for(const k of ctx.lines){const t=aTAgg(models[k],sp,ctx).get('_');if(t)for(const f in tot)tot[f]+=t[f];rows.push([k,...mets.map(m=>pct(aInd(t,m),1))]);}
+    if(multi)rows.push(['Total',...mets.map(m=>pct(aInd(tot,m),1))]);
+    const html=multi?`${mets.map(m=>m.toUpperCase()).join(' y ')} por línea, ${esc(ctx.period.label)}. Total planta: ${mets.map(m=>`${m.toUpperCase()} <b>${pct(aInd(tot,m),1)}</b>`).join(', ')}.`
+      :`${esc(ctx.lines[0])}, ${esc(ctx.period.label)}: ${mets.map(m=>`${m.toUpperCase()} <b>${pct(aInd(tot,m),1)}</b>`).join(', ')}.`;
+    return{html,table:{cols:['Línea',...mets.map(m=>m.toUpperCase())],rows,num:mets.map((_,i)=>i+1)},chart:multi?{kind:'bar',x:ctx.lines,series:mets.map(m=>({name:m.toUpperCase(),data:ctx.lines.map(k=>{const v=aInd(aTAgg(models[k],sp,ctx).get('_'),m);return v==null?null:+v.toFixed(4);})})),fmt:'pct'}:null,chips,note:'LEF = EPT ÷ (EPT + causas internas) · OEE = EPT ÷ (total − NST − DPA) · GLY = EPT ÷ (total − NST) · OAE = EPT ÷ total.'};
+  }
+  const keys=new Set();const per={};
+  for(const k of ctx.lines){per[k]=aTAgg(models[k],sp,ctx,tk.fn);per[k].forEach((_,x)=>keys.add(x));}
+  const ks=[...keys].sort((a,b)=>a<b?-1:a>b?1:0);const m=mets[0];
+  const series=multi?ctx.lines.map(k=>({name:k,data:ks.map(x=>{const v=aInd(per[k].get(x),m);return v==null?null:+v.toFixed(4);})})):mets.map(mm=>({name:mm.toUpperCase(),data:ks.map(x=>{const v=aInd(per[ctx.lines[0]].get(x),mm);return v==null?null:+v.toFixed(4);})}));
+  const rows=ks.map(x=>[tk.fmt(x),...(multi?ctx.lines.map(k=>pct(aInd(per[k].get(x),m),1)):mets.map(mm=>pct(aInd(per[ctx.lines[0]].get(x),mm),1)))]);
+  let extra='';
+  if(!multi&&ks.length>1){const vals=ks.map(x=>({x,v:aInd(per[ctx.lines[0]].get(x),m)})).filter(o=>o.v!=null);if(vals.length>1){const hi=vals.reduce((a,b)=>b.v>a.v?b:a),lo=vals.reduce((a,b)=>b.v<a.v?b:a);extra=` Más alto: <b>${esc(tk.fmt(hi.x))}</b> (${pct(hi.v,1)}). Más bajo: <b>${esc(tk.fmt(lo.x))}</b> (${pct(lo.v,1)}).`;}}
+  else if(multi){const tot=ctx.lines.map(k=>{let o={ept:0,ic:0,ec:0,dpa:0,nst:0,total:0};per[k].forEach(v=>{for(const f in o)o[f]+=v[f];});return{k,v:aInd(o,m)};}).filter(o=>o.v!=null).sort((a,b)=>b.v-a.v);if(tot.length>1)extra=` En todo el periodo, el mejor ${m.toUpperCase()} es <b>${tot[0].k}</b> (${pct(tot[0].v,1)}) y el más bajo <b>${tot[tot.length-1].k}</b> (${pct(tot[tot.length-1].v,1)}).`;}
+  return{html:`${multi?m.toUpperCase():mets.map(x=>x.toUpperCase()).join(', ')} por ${tk.lab} en ${esc(aLinesLabel(ctx))} (${esc(ctx.period.label)}).${extra}`,table:{cols:[capit(tk.lab),...(multi?ctx.lines:mets.map(x=>x.toUpperCase()))],rows,num:series.map((_,i)=>i+1)},chart:{kind:['semana','dia','mes'].includes(sp.gb)?'line':'bar',x:ks.map(tk.fmt),series,fmt:'pct'},chips};
+}
+function aProd(sp,ctx,what){
+  const chips=aChips(sp,ctx,'noCat');const multi=ctx.lines.length>1;const tk=aTKey(sp);
+  const lab=what==='hl'?'producción':'cambios de formato';const f=o=>what==='hl'?o.hl:o.nchg;const fmt=v=>what==='hl'?nf(v,0)+' hL':nf(v);
+  if(!tk){const rows=[];let T=0,TH=0;for(const k of ctx.lines){const t=aTAgg(models[k],sp,ctx).get('_')||{hl:0,nchg:0,chg:0};T+=f(t);TH+=t.chg;rows.push([k,fmt(f(t)),what==='chg'?hrs(t.chg):nf(t.hl/Math.max(1,(ctx.period.b-ctx.period.a+1)),0)+' hL/día']);}
+    return{html:`${capit(lab)} en ${esc(aLinesLabel(ctx))}, ${esc(ctx.period.label)}: <b>${fmt(T)}</b>${what==='chg'?` (${hrs(TH)} en cambios)`:''}.`,table:multi?{cols:['Línea',capit(lab),what==='chg'?'Horas en cambios':'Promedio'],rows,num:[1,2]}:null,chart:multi?{kind:'bar',x:ctx.lines,series:[{name:capit(lab),data:ctx.lines.map(k=>f(aTAgg(models[k],sp,ctx).get('_')||{hl:0,nchg:0}))}],fmt:what==='hl'?'hl':'n'}:null,chips};}
+  const keys=new Set();const per={};for(const k of ctx.lines){per[k]=aTAgg(models[k],sp,ctx,tk.fn);per[k].forEach((_,x)=>keys.add(x));}
+  const ks=[...keys].sort((a,b)=>a<b?-1:a>b?1:0);
+  const series=ctx.lines.map(k=>({name:k,data:ks.map(x=>{const o=per[k].get(x);return o?+f(o).toFixed(2):null;})}));
+  return{html:`${capit(lab)} por ${tk.lab} en ${esc(aLinesLabel(ctx))} (${esc(ctx.period.label)}).`,table:{cols:[capit(tk.lab),...ctx.lines],rows:ks.map(x=>[tk.fmt(x),...ctx.lines.map(k=>{const o=per[k].get(x);return o?fmt(f(o)):'–';})]),num:ctx.lines.map((_,i)=>i+1)},chart:{kind:'bar',stack:true,x:ks.map(tk.fmt),series,fmt:what==='hl'?'hl':'n'},chips};
+}
+
+/* ---------- 5) sugerencias ---------- */
+function aSuggestions(n=8){
+  if(!LINEAS.length)return[];
+  const L=LINEAS[0],M=models[L];const rows=allRows(M,M.nW-1);const clean=rows.filter(r=>!/[\/.]/.test(r.e.name));const w=(clean[0]||rows[0])?.e.name||'';const w2=(clean[1]||clean[0]||rows[1])?.e.name||w;
+  const short=s=>s.replace(/_/g,' ').replace(/\s*-\s*L\d+$/,'').toLowerCase();
+  const L2=LINEAS[1]||L;
+  const s=[`¿Cómo va la ${L}?`,`¿Qué equipo de la ${L} tuvo más horas de falla?`,`52-12-4 de la ${short(w)} de la ${L}`,'¿Qué equipos están en alerta?',
+    `¿Por qué falla la ${short(w2)} de la ${L}?`,'Compara el LEF de todas las líneas por semana',`¿A qué hora fallan más los equipos de la ${L2}?`,`Últimas fallas de más de 10 min en la ${L2}`,
+    `¿Cuántas microparadas hubo en la ${L} la semana pasada?`,`¿Cuándo vuelve a la meta la ${short(w)} si pierde 15 min por semana?`,`Horas de falla por turno en la ${L2}`,`Fallas por subconjunto de la ${short(w)} en la ${L}`,
+    '¿Qué línea tuvo más paradas planeadas?','MTBF y MTTR de los equipos de la '+L2,`Producción por semana de todas las líneas`,`¿Qué productos tuvieron más fallas en la ${L}?`];
+  return s.slice(0,n);
+}
+
+/* ---------- 6) interfaz del chat ---------- */
+function aRenderChart(id,ch){
+  const{c,o}=base();const fm=ch.fmt==='pct'?pctFmt:ch.fmt==='h'?(v=>nf(v,v<10?1:0)+' h'):ch.fmt==='prom'?(v=>nf(v,1)+' min'):(v=>nf(v));
+  const tf=ch.fmt==='pct'?(v=>v==null?'–':pct(v)):ch.fmt==='h'?(v=>v==null?'–':hrs(v)):ch.fmt==='prom'?(v=>v==null?'–':nf(v,1)+' min'):ch.fmt==='hl'?(v=>v==null?'–':nf(v,0)+' hL'):(v=>v==null?'–':nf(v));
+  const multi=ch.series.length>1;
+  const ser=ch.series.map((s,i)=>({name:s.name,type:ch.kind==='line'?'line':'bar',stack:ch.stack?'s':undefined,data:ch.horiz?[...s.data].reverse():s.data,showSymbol:ch.kind==='line'&&ch.x.length<20,connectNulls:false,
+    lineStyle:{width:2,type:s.dash?'dashed':'solid'},barMaxWidth:ch.horiz?16:28,itemStyle:{color:c.s[i%8],borderRadius:ch.stack?0:(ch.horiz?[0,4,4,0]:[4,4,0,0])},
+    label:ch.horiz&&!multi?{show:true,position:'right',color:c.ink2,formatter:p=>tf(p.value)}:undefined,
+    markLine:ch.meta&&i===0?(ch.horiz?{...metaLine(c),data:[{xAxis:META}],label:{show:true,formatter:'0,5 %',color:c.critical,position:'end'}}:metaLine(c)):undefined}));
+  const xs=ch.horiz?[...ch.x].reverse():ch.x;
+  const opt={...o,legend:multi?o.legend:{show:false},grid:{left:8,right:ch.horiz?64:20,top:multi?36:ch.horiz?22:14,bottom:8,containLabel:true},
+    tooltip:{...o.tooltip,trigger:ch.horiz?'item':'axis',valueFormatter:tf,formatter:ch.horiz?(p=>`<b>${esc(xs[p.dataIndex])}</b><br>${esc(p.seriesName)}: ${tf(p.value)}`):undefined},
+    xAxis:ch.horiz?axisVal(c,{axisLabel:{color:c.muted,formatter:fm}}):axisCat(c,xs,{boundaryGap:ch.kind!=='line'}),
+    yAxis:ch.horiz?axisCat(c,xs,{axisLabel:{color:c.ink2,width:200,overflow:'truncate'}}):axisVal(c,{axisLabel:{color:c.muted,formatter:fm}}),series:ser};
+  const clicks=ch.click?(ch.horiz?[...ch.click].reverse():ch.click):null;
+  chart(id,opt,clicks?(p=>{const t=clicks[p.dataIndex];if(t&&t.line&&models[t.line]){state.slot=t.line;state.eq=t.eq;state.cut=null;afterDataChange();setView('equipo');}}):null);
+}
+function aAsk(text){
+  text=String(text||'').trim();if(!text)return;
+  const log=$('#chatLog');const id=++A.n;
+  const qd=document.createElement('div');qd.className='msg q';qd.textContent=text;log.appendChild(qd);
+  let sp=aParse(text);
+  if(sp.follow&&A.prev){const p=A.prev;for(const f of ['exclLines','having','lineReq','allLines','turnos','period','tokens','gb','measure','cat','intent','limit','minDur','micro','indM','weeksN','weekCut','projH']){
+      const exKey={exclLines:'lines',having:'having',lineReq:'lines',allLines:'lines',turnos:'turno',period:'period',weeksN:'period',weekCut:'period',tokens:'tokens',gb:'gb',measure:'measure',cat:'cat',intent:'intent',indM:'intent',limit:'limit',minDur:'minDur',micro:'micro',projH:'projH'}[f];
+      if(!sp.ex[exKey]&&p[f]!==undefined)sp[f]=p[f];}
+    sp.ex={...p.ex,...sp.ex};}
+  let ans;try{ans=aAnswer(sp);}catch(e){console.error(e);ans={html:'Tuve un problema calculando esa respuesta. Intenta escribirla de otra forma.',help:true};}
+  if(!['help','hola'].includes(sp.intent))A.prev=sp;
+  const d=document.createElement('div');d.className='msg a';
+  let h=`<div class="ans">${ans.html}</div>`;
+  if(ans.chips&&ans.chips.length)h=`<div class="why">${ans.chips.map(([k,v])=>`<span><b>${esc(k)}:</b> ${esc(v)}</span>`).join('')}</div>`+h;
+  if(ans.chart)h+=`<div class="chart achart" id="ach${id}" style="height:${ans.chart.horiz?Math.max(180,Math.min(12,ans.chart.x.length)*30+40):260}px"></div>`;
+  if(ans.table&&ans.table.rows.length)h+=`<div class="tablebox ${ans.table.rows.length>12?'scroll':''}" style="max-height:360px"><table class="atable ${ans.table.wide?'':'narrow'}"><thead><tr>${ans.table.cols.map((c,i)=>`<th class="${(ans.table.num||[]).includes(i)?'n':''}">${esc(c)}</th>`).join('')}</tr></thead><tbody>${ans.table.rows.map(r=>`<tr>${r.map((v,i)=>`<td class="${(ans.table.num||[]).includes(i)?'n':''}">${esc(v)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+  if(ans.note)h+=`<p class="note" style="margin:8px 0 0">${esc(ans.note.trim())}</p>`;
+  const sug=ans.sug||(ans.help?aSuggestions(6):null);
+  if(sug)h+=`<div class="chat-sug inline">${sug.map(s=>`<button type="button" class="chipf" data-q="${esc(s)}">${esc(s)}</button>`).join('')}</div>`;
+  if(ans.actions&&ans.actions.length)h+=`<div class="tools">${ans.actions.map((a,i)=>`<button type="button" class="btn ghost" data-act="${i}">${esc(a.label)} →</button>`).join('')}</div>`;
+  d.innerHTML=h;log.appendChild(d);
+  d.querySelectorAll('[data-act]').forEach(b=>b.addEventListener('click',()=>{const a=ans.actions[+b.dataset.act];if(a.line&&models[a.line]){state.slot=a.line;state.cut=null;}if(a.eq)state.eq=a.eq;savePrefs();afterDataChange();setView(a.view);}));
+  if(ans.chart)aRenderChart('ach'+id,ans.chart);
+  qd.scrollIntoView({behavior:'smooth',block:'start'});
+}
+function renderPreguntar(){
+  A_IDF=null;
+  const sug=aSuggestions(8);
+  $('#chatSug').innerHTML=sug.map(s=>`<button type="button" class="chipf" data-q="${esc(s)}">${esc(s)}</button>`).join('');
+  if(!$('#chatLog').children.length){
+    $('#chatLog').innerHTML=`<div class="msg a"><div class="ans">${LINEAS.length?`Tengo datos de <b>${LINEAS.join(', ')}</b>${(()=>{const{mx,mn}=aAnchor();return ` del ${dstr(mn)} al ${dstr(mx)}`;})()}. Pregúntame en español lo que necesites: fallas, equipos, causas, turnos, horarios, LEF, 52-12-4, proyecciones… Debajo tienes ejemplos.`:'Sube primero el reporte BD en <b>Cargar reportes</b>.'}</div></div>`;}
+}
+$('#chatForm').addEventListener('submit',e=>{e.preventDefault();const v=$('#chatIn').value;$('#chatIn').value='';aAsk(v);});
+document.addEventListener('click',e=>{const b=e.target.closest('[data-q]');if(b){if(state.view!=='preguntar')setView('preguntar');aAsk(b.dataset.q);}});
+
+/* =====================================================================
+   17) ARRANQUE
+   ===================================================================== */
+const rerender=()=>{if(state.view!=='cargar'&&state.view!=='preguntar')renderView();};
 try{matchMedia('(prefers-color-scheme: dark)').addEventListener('change',rerender);}catch(e){}
 new MutationObserver(rerender).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
 (async function init(){
   const pr=loadPrefs();if([4,12,52].includes(pr.win))state.win=pr.win;
-  renderPlates();renderSlots();
+  renderPlates();
+  // Datos del formato anterior (un archivo por línea): no se mezclan con el reporte nuevo.
+  const old=await idbAll('lineas');
+  if(Object.keys(old).length){await idbDel(null,'lineas');setTimeout(()=>toast('El formato del Excel cambió: sube el reporte BD nuevo. Los datos anteriores se borraron.'),600);}
   const saved=await idbAll();
-  for(const l of LINEAS){const s=saved[l];if(!s||!s.raw)continue;try{models[l]=buildModel(l,s.raw);meta[l]=s.meta||{};}catch(e){console.warn('Cache inválida',l,e);}}
-  state.slot=(pr.slot&&models[pr.slot])?pr.slot:(LINEAS.find(l=>models[l])||null);
-  fillCut();renderPlates();
-  const h=(location.hash||'').slice(1);const valid=['resumen','equipos','equipo','linea','paradas','comparar','cargar'];
+  chunks=Object.values(saved).filter(c=>c&&c.P&&c.T);
+  if(chunks.length){try{rebuild();}catch(e){console.error(e);}}
+  state.slot=(pr.slot&&models[pr.slot])?pr.slot:(LINEAS[0]||null);
+  fillCut();renderPlates();renderCargar();
+  const h=(location.hash||'').slice(1);const valid=['resumen','preguntar','equipos','equipo','linea','paradas','comparar','cargar'];
   setView(valid.includes(h)?h:(state.slot?'resumen':'cargar'));
-  if(typeof echarts==='undefined') toast('No se pudo cargar la librería de gráficos. Revisa tu conexión a internet.');
+  if(typeof echarts==='undefined') toast('No se pudo cargar la librería de gráficos.');
 })();
 </script>
 </body>
