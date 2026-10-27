@@ -286,7 +286,7 @@ footer{padding-block:18px 32px;border-top:1px solid var(--line);font-size:12.5px
     </div>
     <div class="panel">
       <h3>¿En qué semana vuelve a 12W ≤ 0,5 %?</h3>
-      <p class="sub">Proyección del 12W móvil si en las próximas semanas el equipo pierde cierta cantidad de tiempo. Se usa el tiempo de carga promedio de las últimas 4 semanas.</p>
+      <p class="sub">Proyección del 12W móvil si en las próximas semanas el equipo pierde cierta cantidad de tiempo. Se usan los promedios de los últimos 28 días con datos, llevados a semanas de 7 días (así una semana incompleta no los distorsiona).</p>
       <div class="proj-ctl">
         <label for="projMin">Estimación de tiempo perdido por semana</label>
         <input type="number" id="projMin" min="0" step="1" style="width:110px"> <span>min/sem</span>
@@ -639,26 +639,44 @@ function buildModel(slot,raw){
   for(const e of eqs){e.tipo=Object.entries(e.tipoCnt).sort((a,b)=>b[1]-a[1])[0]?.[0]||'Sin tipo';e.pre=pre(e.fail);e.cpre=pre(e.cnt);}
   let firstDay=Infinity,lastDay=-Infinity;for(let i=0;i<T.n;i++){if(T.day[i]<firstDay)firstDay=T.day[i];if(T.day[i]>lastDay)lastDay=T.day[i];}
   for(let i=0;i<P.n;i++){if(P.day[i]>lastDay&&wIdx.has(mondayOf(P.day[i])))lastDay=P.day[i];}
+  // Arreglos por día: las ventanas 4/12/52 se miden en días (28/84/364), así una semana incompleta no distorsiona.
+  const d0=firstDay,nD=lastDay-firstDay+1;
+  const dT={};for(const k of ['ept','ic','ec','dpa','nst','total','hl','nchg','chg'])dT[k]=new Float64Array(nD);
+  const dHas=new Float64Array(nD);
+  for(let i=0;i<T.n;i++){const di=T.day[i]-d0;if(di<0||di>=nD)continue;dHas[di]=1;for(const k in dT)dT[k][di]+=T[k][i];}
+  const dDen=new Float64Array(nD);for(let i=0;i<nD;i++)dDen[i]=dT.ept[i]+dT.ic[i];
+  const dDenPre=pre(dDen),dHasPre=pre(dHas);const dTPre={};for(const k in dT)dTPre[k]=pre(dT[k]);
+  for(const e of eqs){e.dfail=new Float64Array(nD);e.dcnt=new Float64Array(nD);for(const i of e.rows){const di=P.day[i]-d0;if(di<0||di>=nD)continue;e.dfail[di]+=P.min[i]/60;e.dcnt[di]++;}e.dpre=pre(e.dfail);e.dcpre=pre(e.dcnt);}
+  const wEnd=new Int32Array(nW);for(let w=0;w<nW;w++)wEnd[w]=weeks[w];
+  for(let i=0;i<T.n;i++){const w=tWeek[i];if(T.day[i]>wEnd[w])wEnd[w]=T.day[i];}
+  for(let i=0;i<P.n;i++){const w=pWeek[i];if(w>=0&&P.day[i]>wEnd[w]&&P.day[i]<=lastDay)wEnd[w]=P.day[i];}
   const wDays=new Int16Array(nW);{const seen=new Set();for(let i=0;i<T.n;i++){const d=T.day[i];if(!seen.has(d)){seen.add(d);wDays[tWeek[i]]++;}}}
   const eqIds=new Set();for(let i=0;i<P.n;i++){if(P.dict.eq[P.eq[i]])eqIds.add(P.eq[i]);}
-  return {slot,P,T,weeks,nW,wIdx,W,den,denPre,eqs,icCode,nstCode,microCode,pWeek,tWeek,pre,firstDay,lastDay,wDays,eqIds};
+  return {slot,P,T,weeks,nW,wIdx,W,den,denPre,eqs,icCode,nstCode,microCode,pWeek,tWeek,pre,firstDay,lastDay,wDays,eqIds,d0,nD,dDenPre,dHasPre,dTPre,wEnd};
 }
-function rng(M,end,N){const a=Math.max(0,end-N+1);return[a,end];}
+/* Ventana en días: termina el último día con datos de la semana de corte y dura 7×N días. */
+function rng(M,end,N,shift=0){const b=M.wEnd[end]-shift*7*N;return[b-7*N+1,b];}
 function sumP(pre,a,b){return a>b?0:pre[b+1]-pre[a];}
-function kpiEq(M,e,end,N){const[a,b]=rng(M,end,N);const d=sumP(M.denPre,a,b);return d>0?sumP(e.pre,a,b)/d:0;}
+function sumD(M,pre,a,b){a=Math.max(a,M.d0);b=Math.min(b,M.d0+M.nD-1);return a>b?0:pre[b-M.d0+1]-pre[a-M.d0];}
+function daysIn(M,a,b){return sumD(M,M.dHasPre,a,b);}
+function wRange(M,a,b){let wa=0;while(wa<M.nW-1&&M.weeks[wa]+6<a)wa++;let wb=M.nW-1;while(wb>0&&M.weeks[wb]>b)wb--;return[wa,wb];}
+const wkM=(M,w)=>wk(M.weeks[w])+(M.wDays[w]<7?'*':'');
+function kpiEq(M,e,end,N){const[a,b]=rng(M,end,N);const d=sumD(M,M.dDenPre,a,b);return d>0?sumD(M,e.dpre,a,b)/d:0;}
 function eqRow(M,e,end){
   const p52=kpiEq(M,e,end,52),p12=kpiEq(M,e,end,12),p4=kpiEq(M,e,end,4);
-  const[a,b]=rng(M,end,12);const h12=sumP(e.pre,a,b),n12=sumP(e.cpre,a,b);
+  const[a,b]=rng(M,end,12);const h12=sumD(M,e.dpre,a,b),n12=sumD(M,e.dcpre,a,b);
   const spark=[];for(let w=Math.max(M.nW<12?0:11,end-25);w<=end;w++)spark.push(kpiEq(M,e,w,12));
-  const h4=sumP(e.pre,Math.max(0,end-3),end)/Math.min(4,end+1);
+  const h4=lossRate(M,e,end);
   const ret=projReturn(M,e,end,h4);
   return{e,p52,p12,p4,h12,n12,mttr:n12?h12*60/n12:null,st:statusOf(p52,p12),spark,ret,h4};
 }
-function den4(M,end){const a=Math.max(0,end-3);return sumP(M.denPre,a,end)/(end-a+1);}
+/* Promedios semanales de los últimos 28 días: total ÷ días con datos × 7 (una semana incompleta no los baja). */
+function lossRate(M,e,end){const[a,b]=rng(M,end,4);const d=daysIn(M,a,b);return d?sumD(M,e.dpre,a,b)/d*7:0;}
+function den4(M,end){const[a,b]=rng(M,end,4);const d=daysIn(M,a,b);return d?sumD(M,M.dDenPre,a,b)/d*7:0;}
 function projSeries(M,e,end,h,K=20,N=12){
-  const d4=den4(M,end);const out=[];
-  for(let k=1;k<=K;k++){const past=Math.max(0,N-k);let num=k*h,dd=k*d4;
-    if(past>0){const a=Math.max(0,end-past+1);num+=sumP(e.pre,a,end);dd+=sumP(M.denPre,a,end);}
+  const d4=den4(M,end);const out=[];const b=M.wEnd[end];
+  for(let k=1;k<=K;k++){const past=7*Math.max(0,N-k);let num=k*h,dd=k*d4;
+    if(past>0){const a=b-past+1;num+=sumD(M,e.dpre,a,b);dd+=sumD(M,M.dDenPre,a,b);}
     out.push(dd>0?num/dd:0);}
   return out;
 }
@@ -666,14 +684,15 @@ function projReturn(M,e,end,h){
   if(kpiEq(M,e,end,12)<=META) return 0;
   const s=projSeries(M,e,end,h,12);const k=s.findIndex(v=>v<=META);return k<0?null:k+1;
 }
-function windowAgg(M,end,N){
-  const[a,b]=rng(M,end,N);const W=M.W;const s={};
-  for(const k in W){let t=0;for(let w=a;w<=b;w++)t+=W[k][w];s[k]=t;}
+function windowAgg(M,end,N,shift=0){
+  const[a,b]=rng(M,end,N,shift);const s={};
+  for(const k in M.dTPre)s[k]=sumD(M,M.dTPre[k],a,b);
+  s.days=daysIn(M,a,b);if(shift&&!s.days)return null;
   s.lef=s.ept+s.ic>0?s.ept/(s.ept+s.ic):null;
   s.oee=s.total-s.nst-s.dpa>0?s.ept/(s.total-s.nst-s.dpa):null;
   s.gly=s.total-s.nst>0?s.ept/(s.total-s.nst):null;
   s.oae=s.total>0?s.ept/s.total:null;
-  s.a=a;s.b=b;s.n=b-a+1;return s;
+  s.a=a;s.b=b;s.n=Math.max(s.days,1)/7;return s;
 }
 function weeklyInd(M){const W=M.W;return M.weeks.map((_,w)=>{const e=W.ept[w],t=W.total[w];return{
   lef:e+W.ic[w]>0?e/(e+W.ic[w]):null,oee:t-W.nst[w]-W.dpa[w]>0?e/(t-W.nst[w]-W.dpa[w]):null,gly:t-W.nst[w]>0?e/(t-W.nst[w]):null,oae:t>0?e/t:null};});}
@@ -809,8 +828,11 @@ function renderCtx(){
   const M=curModel();
   for(const b of document.querySelectorAll('#fWin button'))b.setAttribute('aria-pressed',String(+b.dataset.w===state.win));
   if(!M){$('#ctx').innerHTML='';return;}
-  const[a,b]=rng(M,state.cut,state.win);
-  $('#ctx').innerHTML=`<b>${state.slot}</b> · ventana ${wk(M.weeks[a])} a ${wk(M.weeks[b])} (${b-a+1} sem)`+(b-a+1<state.win?' · <span class="up-bad">historia incompleta</span>':'');
+  const N=state.win;const[a,b]=rng(M,state.cut,N);const d=daysIn(M,a,b);const a2=Math.max(a,M.d0);
+  const part=M.wDays[state.cut]<7;
+  $('#ctx').innerHTML=`<b>${state.slot}</b> · ventana ${dstr(a2,false)} – ${dstr(b)} (${N*7} días)`
+    +(d<N*7?` · <span class="up-bad">solo hay ${d} de ${N*7} días</span>`:'')
+    +(part?` · <span title="La semana de corte no está completa: las ventanas cuentan días hacia atrás desde el último día con datos y los promedios semanales se calculan por día × 7.">${wk(M.weeks[state.cut])} incompleta (${M.wDays[state.cut]} días)*</span>`:'');
 }
 function setView(v){
   state.view=v;
@@ -875,13 +897,13 @@ function spark(vals){
    9) VISTA: RESUMEN
    ===================================================================== */
 function allRows(M,end){return M.eqs.map(e=>eqRow(M,e,end)).sort((a,b)=>b.p12-a.p12);}
-function microStats(M,a,b){let n=0,nm=0,m=0,mm=0;const P=M.P;for(const e of M.eqs)for(const i of e.rows){const w=M.pWeek[i];if(w<a||w>b)continue;n++;m+=P.min[i];if(P.clas[i]===M.microCode){nm++;mm+=P.min[i];}}return{n,nm,m,mm};}
+function microStats(M,a,b){let n=0,nm=0,m=0,mm=0;const P=M.P;for(const e of M.eqs)for(const i of e.rows){const w=M.P.day[i];if(w<a||w>b)continue;n++;m+=P.min[i];if(P.clas[i]===M.microCode){nm++;mm+=P.min[i];}}return{n,nm,m,mm};}
 function tile(k,v,d,dcls){return `<div class="tile"><span class="k">${k}</span><span class="v">${v}</span>${d?`<span class="d ${dcls||''}">${d}</span>`:''}</div>`;}
 function delta(cur,prev,goodUp,fmt){if(prev==null||cur==null||!isFinite(prev))return['',''];const d=cur-prev;if(Math.abs(d)<1e-9)return['sin cambio vs. ventana anterior','neutral'];
   const good=goodUp?d>0:d<0;return[`${d>0?'▲':'▼'} ${fmt(Math.abs(d))} vs. ventana anterior`,good?'down-good':'up-bad'];}
 function renderResumen(){
   const M=curModel(),end=state.cut,N=state.win;const rows=allRows(M,end);
-  const s=windowAgg(M,end,N);const prevEnd=end-N;const sp=prevEnd>=0?windowAgg(M,prevEnd,N):null;
+  const s=windowAgg(M,end,N);const sp=windowAgg(M,end,N,1);
   const[a,b]=rng(M,end,N);const ms=microStats(M,a,b);
   const over12=rows.filter(r=>r.p12>META).length,ok=rows.filter(r=>r.st==='ok').length;
   const dl=delta(s.lef,sp?.lef,true,v=>nf(v*100,1)+' pts');const dh=delta(s.ic,sp?.ic,false,v=>hrs(v));
@@ -939,11 +961,11 @@ function insights(M,rows,end,N,s,sp,ms){
   const slow=cri.map(r=>({r,k0:projReturn(M,r.e,end,0)})).filter(x=>x.k0!=null).sort((a,b)=>b.k0-a.k0)[0];
   if(slow) out.push({sev:'critical',tag:'Proyección',html:`Aun sin ninguna falla más, <b>${esc(slow.r.e.name)}</b> tardaría <b>${slow.k0} semana${slow.k0>1?'s':''}</b> en volver a 12W ≤ 0,5 % (${wk(M.weeks[end]+7*slow.k0)}).`});
   const noRet=cri.filter(r=>r.ret==null);
-  if(noRet.length) out.push({sev:'critical',tag:'Al ritmo actual no se recuperan',html:`Con el promedio de pérdida de las últimas 4 semanas, <b>${noRet.slice(0,4).map(r=>esc(r.e.name)).join(', ')}</b> no regresa${noRet.length>1?'n':''} a la meta en 12W.`});
+  if(noRet.length) out.push({sev:'critical',tag:'Al ritmo actual no se recuperan',html:`Con el promedio de pérdida de los últimos 28 días, <b>${noRet.slice(0,4).map(r=>esc(r.e.name)).join(', ')}</b> no regresa${noRet.length>1?'n':''} a la meta en 12W.`});
   if(ms.n) out.push({sev:'info',tag:'Microparadas',html:`<b>${pct(ms.nm/ms.n,0)}</b> de las fallas duran menos de 5 minutos y suman ${pct(ms.mm/(ms.m||1),0)} del tiempo de falla. ${ms.mm/(ms.m||1)>0.4?'Son la principal fuente de pérdida: conviene atacarlas con ajustes y sensores.':'El tiempo se va sobre todo en fallas largas.'}`});
   // turno
   const[a,b]=rng(M,end,N);const T=M.T;const tt={};
-  for(let i=0;i<T.n;i++){const w=M.tWeek[i];if(w<a||w>b)continue;const k=T.dict.turno[T.turno[i]];tt[k]=tt[k]||{e:0,ic:0};tt[k].e+=T.ept[i];tt[k].ic+=T.ic[i];}
+  for(let i=0;i<T.n;i++){const w=T.day[i];if(w<a||w>b)continue;const k=T.dict.turno[T.turno[i]];tt[k]=tt[k]||{e:0,ic:0};tt[k].e+=T.ept[i];tt[k].ic+=T.ic[i];}
   const tl=Object.entries(tt).map(([k,v])=>({k,lef:v.e+v.ic>0?v.e/(v.e+v.ic):1,ic:v.ic})).sort((x,y)=>x.lef-y.lef);
   if(tl.length>1&&tl[tl.length-1].lef-tl[0].lef>0.01) out.push({sev:'warning',tag:'Turnos',html:`<b>${esc(tl[0].k)}</b> tiene el LEF más bajo (${pct(tl[0].lef,1)}) frente a ${esc(tl[tl.length-1].k)} (${pct(tl[tl.length-1].lef,1)}) en las últimas ${N} semanas.`});
   if(sp&&s.lef!=null&&sp.lef!=null){const d=s.lef-sp.lef;out.push({sev:d>=0?'good':'serious',tag:'Eficiencia',html:`El LEF ${d>=0?'subió':'bajó'} <b>${nf(Math.abs(d)*100,1)} puntos</b> frente a las ${N} semanas anteriores (${pct(sp.lef,1)} → ${pct(s.lef,1)}).`});}
@@ -988,7 +1010,7 @@ $('#eqCsv').addEventListener('click',()=>{
 /* =====================================================================
    11) VISTA: DETALLE DE EQUIPO
    ===================================================================== */
-function topBy(M,e,a,b,field,n=10){const P=M.P;const m=new Map();for(const i of e.rows){const w=M.pWeek[i];if(w<a||w>b)continue;const k=P[field][i];m.set(k,(m.get(k)||0)+P.min[i]/60);}
+function topBy(M,e,a,b,field,n=10){const P=M.P;const m=new Map();for(const i of e.rows){const w=M.P.day[i];if(w<a||w>b)continue;const k=P[field][i];m.set(k,(m.get(k)||0)+P.min[i]/60);}
   return[...m.entries()].map(([k,v])=>({k:P.dict[field][k]||'(sin dato)',v})).sort((x,y)=>y.v-x.v).slice(0,n);}
 function hbar(id,items,c,fmt,color){
   const it=[...items].reverse();
@@ -1008,15 +1030,15 @@ function renderEquipo(){
   const{c,o}=base();
   $('#eqPill').innerHTML=pill(r.st)+` <span class="note">${esc(e.tipo)}</span>`;
   const bar=v=>{const w=Math.min(100,v/(META*3)*100);return `<div class="bar-meta" title="La marca está en 0,5 %"><i style="width:${w}%;background:${v>META?'var(--critical)':'var(--good)'}"></i><i style="left:33.3%;width:2px;background:var(--ink);opacity:.5"></i></div>`;};
-  const hW=n=>{const[a,b]=rng(M,end,n);return sumP(e.pre,a,b);};
+  const hW=n=>{const[a,b]=rng(M,end,n);return sumD(M,e.dpre,a,b);};
   $('#triad').innerHTML=[['52W',r.p52,52],['12W',r.p12,12],['4W',r.p4,4]].map(([l,v,n])=>`<div><span class="w">${l}</span><span class="p" style="color:${v>META?'var(--critical)':'var(--ink)'}">${pct(v)}</span>${bar(v)}<span class="h">${hrs(hW(n))} perdidas en ${n} semanas</span></div>`).join('');
-  const[a,b]=rng(M,end,N);const hN=sumP(e.pre,a,b),nN=sumP(e.cpre,a,b);let n5=0;for(const i of e.rows){const w=M.pWeek[i];if(w>=a&&w<=b&&M.P.min[i]>=5)n5++;}
+  const[a,b]=rng(M,end,N);const hN=sumD(M,e.dpre,a,b),nN=sumD(M,e.dcpre,a,b);let n5=0;for(const i of e.rows){const w=M.P.day[i];if(w>=a&&w<=b&&M.P.min[i]>=5)n5++;}
   const s=windowAgg(M,end,N);
   $('#tilesEq').innerHTML=tile(`Paradas ${N} sem`,nf(nN),`${nf(n5)} de 5 min o más`)+tile('Minutos por parada',nN?nf(hN*60/nN,1):'–','promedio (MTTR aprox.)')+
-    tile('Horas de producción entre paradas',nN?nf(s.ept/nN,1):'–','EPT ÷ paradas (MTBF aprox.)')+tile('Pérdida media últimas 4 sem',nf(r.h4*60,0)+' <small style="font-size:16px;color:var(--muted)">min/sem</small>','');
+    tile('Horas de producción entre paradas',nN?nf(s.ept/nN,1):'–','EPT ÷ paradas (MTBF aprox.)')+tile('Pérdida media por semana',nf(r.h4*60,0)+' <small style="font-size:16px;color:var(--muted)">min/sem</small>','últimos 28 días (promedio diario × 7)');
   // rolling
   const from=Math.max(0,end-51);const xs=[],s52=[],s12=[],s4=[],wh=[];
-  const ok=(w,N)=>w>=N-1||M.nW<N;for(let w=from;w<=end;w++){xs.push(wk(M.weeks[w]));s52.push(ok(w,52)?kpiEq(M,e,w,52):null);s12.push(ok(w,12)?kpiEq(M,e,w,12):null);s4.push(ok(w,4)?kpiEq(M,e,w,4):null);wh.push(+e.fail[w].toFixed(3));}
+  const ok=(w,N)=>w>=N-1||M.nW<N;for(let w=from;w<=end;w++){xs.push(wkM(M,w));s52.push(ok(w,52)?kpiEq(M,e,w,52):null);s12.push(ok(w,12)?kpiEq(M,e,w,12):null);s4.push(ok(w,4)?kpiEq(M,e,w,4):null);wh.push(+e.fail[w].toFixed(3));}
   chart('chRoll',{...o,tooltip:{...o.tooltip,valueFormatter:v=>v==null?'–':pct(v)},xAxis:axisCat(c,xs,{boundaryGap:false}),yAxis:axisVal(c,{axisLabel:{color:c.muted,formatter:pctFmt}}),
     series:[{name:'52W',type:'line',data:s52,showSymbol:false,lineStyle:{width:2},itemStyle:{color:c.s[0]},connectNulls:false},
       {name:'12W',type:'line',data:s12,showSymbol:false,lineStyle:{width:2},itemStyle:{color:c.s[1]},markLine:metaLine(c)},
@@ -1026,22 +1048,22 @@ function renderEquipo(){
   // projection
   if(state.projMin==null||state._projEq!==e.name){state.projMin=Math.round(r.h4*60);state._projEq=e.name;}
   $('#projMin').value=state.projMin;
-  $('#projNote').textContent=`promedio real últimas 4 semanas: ${nf(r.h4*60,0)} min/sem`;
+  $('#projNote').textContent=`promedio real de los últimos 28 días: ${nf(r.h4*60,0)} min/sem`;
   renderProj(M,e,end,r);
   // breakdowns
   $('#scHint').textContent=$('#crHint').textContent=`horas · ${N} sem`;
   hbar('chSc',topBy(M,e,a,b,'sc',10),c,v=>hrs(v),c.s[0]);
   hbar('chCr',topBy(M,e,a,b,'causa',10),c,v=>hrs(v),c.s[1]);
   // clasificación
-  const cl=new Map();let totN=0,totM=0;for(const i of e.rows){const w=M.pWeek[i];if(w<a||w>b)continue;const k=M.P.dict.clas[M.P.clas[i]]||'Sin clasificar';const x=cl.get(k)||{n:0,m:0};x.n++;x.m+=M.P.min[i];cl.set(k,x);totN++;totM+=M.P.min[i];}
+  const cl=new Map();let totN=0,totM=0;for(const i of e.rows){const w=M.P.day[i];if(w<a||w>b)continue;const k=M.P.dict.clas[M.P.clas[i]]||'Sin clasificar';const x=cl.get(k)||{n:0,m:0};x.n++;x.m+=M.P.min[i];cl.set(k,x);totN++;totM+=M.P.min[i];}
   const order=['Menor a 5 minutos','Falla menor','Falla crónica','Falla mayor'];
   const keys=[...cl.keys()].sort((x,y)=>(order.indexOf(x)+99*(order.indexOf(x)<0))-(order.indexOf(y)+99*(order.indexOf(y)<0)));
   stack100('chClas',keys,[['Eventos',k=>cl.get(k).n/(totN||1)],['Minutos',k=>cl.get(k).m/(totM||1)]],c,k=>{const x=cl.get(k);return ` · ${nf(x.n)} eventos · ${nf(x.m,0)} min`;});
-  const ap=new Map();let apT=0;for(const i of e.rows){const w=M.pWeek[i];if(w<a||w>b)continue;const k=M.P.dict.api[M.P.api[i]]||'Sin dato';const x=ap.get(k)||{n:0,m:0};x.n++;x.m+=M.P.min[i];ap.set(k,x);apT+=M.P.min[i];}
+  const ap=new Map();let apT=0;for(const i of e.rows){const w=M.P.day[i];if(w<a||w>b)continue;const k=M.P.dict.api[M.P.api[i]]||'Sin dato';const x=ap.get(k)||{n:0,m:0};x.n++;x.m+=M.P.min[i];ap.set(k,x);apT+=M.P.min[i];}
   const apk=[...ap.keys()].sort((x,y)=>ap.get(y).m-ap.get(x).m);let apN=0;ap.forEach(v=>apN+=v.n);
   stack100('chApi',apk,[['Eventos',k=>ap.get(k).n/(apN||1)],['Minutos',k=>ap.get(k).m/(apT||1)]],c,k=>{const x=ap.get(k);return ` · ${nf(x.n)} eventos · ${nf(x.m,0)} min`;});
   // bitácora
-  const P=M.P;const bit=e.rows.filter(i=>{const w=M.pWeek[i];return w>=a&&w<=b&&P.min[i]>=5;}).sort((x,y)=>P.day[y]-P.day[x]||P.hini[y]-P.hini[x]);
+  const P=M.P;const bit=e.rows.filter(i=>{const w=P.day[i];return w>=a&&w<=b&&P.min[i]>=5;}).sort((x,y)=>P.day[y]-P.day[x]||P.hini[y]-P.hini[x]);
   $('#bitHint').textContent=`${bit.length} eventos en ${N} semanas`;
   const hh=h=>h<0?'':String(Math.floor(h)).padStart(2,'0')+':'+String(Math.round((h%1)*60)).padStart(2,'0');
   $('#bitTable').innerHTML=`<thead><tr><th>Fecha</th><th>Turno</th><th>Subconjunto</th><th class="n">Min</th><th>Causa raíz</th><th>Detalle</th><th>Acción</th></tr></thead><tbody>${bit.slice(0,200).map(i=>`<tr><td style="white-space:nowrap">${dstr(P.day[i])} ${hh(P.hini[i])}</td><td style="white-space:nowrap">${esc(P.dict.turno[P.turno[i]])}</td><td>${esc(P.dict.sc[P.sc[i]])}</td><td class="n">${nf(P.min[i],1)}</td><td>${esc(P.dict.causa[P.causa[i]])}</td><td style="min-width:260px">${esc(P.dict.det[P.det[i]])}</td><td style="min-width:200px">${esc(P.dict.acc[P.acc[i]])}</td></tr>`).join('')||'<tr><td colspan="7" class="neutral">Sin fallas de 5 minutos o más en la ventana.</td></tr>'}</tbody>`;
@@ -1055,8 +1077,8 @@ function stack100(id,keys,bars,c,extra){
 }
 function renderProj(M,e,end,r){
   const{c,o}=base();const h=(+$('#projMin').value||0)/60;
-  const K=16;const sc=[['Sin nuevas fallas',0,c.s[2]],[`${nf(h*60,0)} min/sem (tu estimado)`,h,c.s[1]],[`Promedio 4W (${nf(r.h4*60,0)} min/sem)`,r.h4,c.s[6]]];
-  const hist=[];const xs=[];for(let w=Math.max(M.nW<12?0:11,end-11);w<=end;w++){xs.push(wk(M.weeks[w]));hist.push(kpiEq(M,e,w,12));}
+  const K=16;const sc=[['Sin nuevas fallas',0,c.s[2]],[`${nf(h*60,0)} min/sem (tu estimado)`,h,c.s[1]],[`Promedio últimos 28 días (${nf(r.h4*60,0)} min/sem)`,r.h4,c.s[6]]];
+  const hist=[];const xs=[];for(let w=Math.max(M.nW<12?0:11,end-11);w<=end;w++){xs.push(wkM(M,w));hist.push(kpiEq(M,e,w,12));}
   const nh=xs.length;for(let k=1;k<=K;k++)xs.push(wk(M.weeks[end]+7*k));
   const ser=[{name:'12W real',type:'line',data:[...hist,...Array(K).fill(null)],showSymbol:false,lineStyle:{width:2.5},itemStyle:{color:c.s[0]},markLine:metaLine(c)}];
   for(const[nm,hv,col] of sc){const p=projSeries(M,e,end,hv,K);ser.push({name:nm,type:'line',data:[...Array(nh-1).fill(null),hist[nh-1],...p],showSymbol:false,lineStyle:{width:2,type:'dashed'},itemStyle:{color:col}});}
@@ -1077,12 +1099,12 @@ $('#projMin').addEventListener('input',()=>{const M=curModel();if(!M)return;stat
    ===================================================================== */
 function renderLinea(){
   const M=curModel(),end=state.cut,N=state.win;const{c,o}=base();
-  const s=windowAgg(M,end,N);const sp=end-N>=0?windowAgg(M,end-N,N):null;
+  const s=windowAgg(M,end,N);const sp=windowAgg(M,end,N,1);
   const t=(k,lab)=>{const d=delta(s[k],sp?.[k],true,v=>nf(v*100,1)+' pts');return tile(lab+` ${N} sem`,pct(s[k],1),d[0],d[1]);};
-  $('#tilesLin').innerHTML=t('lef','LEF')+t('oee','OEE')+t('gly','GLY')+t('oae','OAE')+tile('Producción',nf(s.hl,0)+' <small style="font-size:16px;color:var(--muted)">hL</small>',`${nf(s.hl/s.n,0)} hL por semana`)+tile('Cambios de formato',nf(s.nchg),hrs(s.chg)+' en cambios');
-  const xs=M.weeks.slice(0,end+1).map(m=>wk(m));const ind=weeklyInd(M).slice(0,end+1);
-  const[a,b]=rng(M,end,N);
-  const shade={silent:true,itemStyle:{color:c.accent,opacity:.08},data:[[{xAxis:xs[a]},{xAxis:xs[b]}]]};
+  $('#tilesLin').innerHTML=t('lef','LEF')+t('oee','OEE')+t('gly','GLY')+t('oae','OAE')+tile('Producción',nf(s.hl,0)+' <small style="font-size:16px;color:var(--muted)">hL</small>',`${nf(s.hl/s.n,0)} hL por semana (prom. diario × 7)`)+tile('Cambios de formato',nf(s.nchg),hrs(s.chg)+' en cambios');
+  const xs=M.weeks.slice(0,end+1).map((m,w)=>wkM(M,w));const ind=weeklyInd(M).slice(0,end+1);
+  const[a,b]=rng(M,end,N);const[wa,wb]=wRange(M,a,b);
+  const shade={silent:true,itemStyle:{color:c.accent,opacity:.08},data:[[{xAxis:xs[wa]},{xAxis:xs[wb]}]]};
   chart('chInd',{...o,grid:{...o.grid,right:28},tooltip:{...o.tooltip,valueFormatter:v=>v==null?'–':pct(v,1)},xAxis:axisCat(c,xs,{boundaryGap:false}),yAxis:axisVal(c,{min:v=>Math.max(0,Math.floor(v.min*10)/10),max:1,axisLabel:{color:c.muted,formatter:v=>nf(v*100,0)+' %'}}),
     series:[['LEF','lef'],['OEE','oee'],['GLY','gly'],['OAE','oae']].map(([n,k],i)=>({name:n,type:'line',data:ind.map(x=>x[k]),showSymbol:false,lineStyle:{width:2},itemStyle:{color:c.s[i]},markArea:i===0?shade:undefined}))});
   const parts=[['EPT (producción efectiva)','ept'],['Causas internas (fallas)','ic'],['Causas externas','ec'],['Actividades planeadas','dpa'],['No programado','nst']];
@@ -1092,7 +1114,7 @@ function renderLinea(){
   chart('chHl',{...o,legend:{show:false},tooltip:{...o.tooltip,valueFormatter:v=>nf(v,0)+' hL'},xAxis:axisCat(c,xs),yAxis:axisVal(c,{axisLabel:{color:c.muted,formatter:v=>nf(v/1000,0)+' mil'}}),
     series:[{name:'Producción',type:'bar',barMaxWidth:14,data:[...W.hl].slice(0,end+1).map(v=>Math.round(v)),itemStyle:{color:c.s[0],borderRadius:[4,4,0,0]},markArea:shade}]});
   // turno
-  const T=M.T;const tt={};for(let i=0;i<T.n;i++){const w=M.tWeek[i];if(w<a||w>b)continue;const k=T.dict.turno[T.turno[i]];tt[k]=tt[k]||{e:0,ic:0,hl:0};tt[k].e+=T.ept[i];tt[k].ic+=T.ic[i];tt[k].hl+=T.hl[i];}
+  const T=M.T;const tt={};for(let i=0;i<T.n;i++){const w=T.day[i];if(w<a||w>b)continue;const k=T.dict.turno[T.turno[i]];tt[k]=tt[k]||{e:0,ic:0,hl:0};tt[k].e+=T.ept[i];tt[k].ic+=T.ic[i];tt[k].hl+=T.hl[i];}
   const tk=Object.keys(tt).sort();$('#turHint').textContent=`${N} sem`;
   chart('chTurno',{...o,legend:{show:false},grid:{left:8,right:60,top:8,bottom:8,containLabel:true},tooltip:{...o.tooltip,trigger:'item',formatter:p=>{const x=tt[tk[p.dataIndex]];return `<b>${esc(tk[p.dataIndex])}</b><br>LEF ${pct(p.value,1)}<br>Fallas: ${hrs(x.ic)}<br>Producción: ${nf(x.hl,0)} hL`;}},
     xAxis:axisVal(c,{min:v=>Math.max(0,Math.floor(v.min*20)/20),max:v=>Math.min(1,Math.ceil(v.max*20)/20),splitNumber:4,axisLabel:{color:c.muted,formatter:v=>nf(v*100,0)+' %'}}),yAxis:axisCat(c,tk,{inverse:true,axisLabel:{color:c.ink2}}),
@@ -1120,7 +1142,7 @@ function renderParadas(){
     series:catOrder.map(ci=>({name:catName(ci),type:'bar',stack:'x',barMaxWidth:16,itemStyle:{color:colCat(ci),borderRadius:[0,4,4,0]},data:items.map(x=>x.pc===ci?+x.v.toFixed(2):null),
       label:{show:true,position:'right',color:c.ink2,formatter:p=>p.value?hrs(p.value):''}}))});
   // causa raíz línea
-  const cr=new Map();for(const e of M.eqs)for(const i of e.rows){const w=M.pWeek[i];if(w<a||w>b)continue;const k=P.dict.causa[P.causa[i]]||'(sin causa raíz)';cr.set(k,(cr.get(k)||0)+P.min[i]/60);}
+  const cr=new Map();for(const e of M.eqs)for(const i of e.rows){const w=M.P.day[i];if(w<a||w>b)continue;const k=P.dict.causa[P.causa[i]]||'(sin causa raíz)';cr.set(k,(cr.get(k)||0)+P.min[i]/60);}
   hbar('chCrl',[...cr.entries()].map(([k,v])=>({k,v})).sort((x,y)=>y.v-x.v).slice(0,12),c,v=>hrs(v),c.s[1]);
   // heatmap equipo × semana
   const hf=Math.max(0,end-25);const wks=[];for(let w=hf;w<=end;w++)wks.push(w);
@@ -1128,7 +1150,7 @@ function renderParadas(){
   const data=[];let mx=0;topE.forEach((x,yi)=>wks.forEach((w,xi)=>{const v=+x.e.fail[w].toFixed(2);mx=Math.max(mx,v);data.push([xi,yi,v||'-']);}));
   chart('chHeat',{...o,legend:{show:false},grid:{left:8,right:16,top:8,bottom:56,containLabel:true},
     tooltip:{...o.tooltip,trigger:'item',axisPointer:undefined,formatter:p=>`<b>${esc(topE[p.value[1]].e.name)}</b><br>${wk(M.weeks[wks[p.value[0]]],true)}: ${p.value[2]==='-'?'sin fallas':hrs(p.value[2])}`},
-    xAxis:axisCat(c,wks.map(w=>wk(M.weeks[w])),{splitArea:{show:false}}),yAxis:axisCat(c,topE.map(x=>x.e.name),{inverse:true,axisLabel:{color:c.ink2,width:190,overflow:'truncate'}}),
+    xAxis:axisCat(c,wks.map(w=>wkM(M,w)),{splitArea:{show:false}}),yAxis:axisCat(c,topE.map(x=>x.e.name),{inverse:true,axisLabel:{color:c.ink2,width:190,overflow:'truncate'}}),
     visualMap:{min:0,max:mx||1,calculable:false,orient:'horizontal',left:'center',bottom:0,itemHeight:180,itemWidth:10,text:[hrs(mx),'0 h'],textStyle:{color:c.muted},inRange:{color:c.seq}},
     series:[{type:'heatmap',data,itemStyle:{borderColor:c.surface,borderWidth:2,borderRadius:3},emphasis:{itemStyle:{borderColor:c.ink,borderWidth:1}}}]},
     p=>{const x=topE[p.value[1]];if(x){state.eq=x.e.name;setView('equipo');}});
@@ -1143,10 +1165,10 @@ function renderParadas(){
   // microparadas semanales
   const mc=new Array(end+1).fill(0),mm=new Array(end+1).fill(0);
   for(const e of M.eqs)for(const i of e.rows){const w=M.pWeek[i];if(w<0||w>end||P.clas[i]!==M.microCode)continue;mc[w]++;mm[w]+=P.min[i];}
-  const xs=M.weeks.slice(0,end+1).map(m=>wk(m));
+  const xs=M.weeks.slice(0,end+1).map((m,w)=>wkM(M,w));const[wa,wb]=wRange(M,a,b);
   chart('chMicro',{...o,legend:{show:false},tooltip:{...o.tooltip,formatter:ps=>{const i=ps[0].dataIndex;return `<b>${xs[i]}</b><br>${nf(mc[i])} microparadas<br>${nf(mm[i],0)} min en total`;}},
     xAxis:axisCat(c,xs,{boundaryGap:false}),yAxis:axisVal(c,{axisLabel:{color:c.muted,formatter:v=>nf(v)}}),
-    series:[{name:'Microparadas',type:'line',data:mc,showSymbol:false,lineStyle:{width:2},itemStyle:{color:c.s[0]},areaStyle:{color:c.s[0],opacity:.12},markArea:{silent:true,itemStyle:{color:c.accent,opacity:.08},data:[[{xAxis:xs[a]},{xAxis:xs[b]}]]}}]});
+    series:[{name:'Microparadas',type:'line',data:mc,showSymbol:false,lineStyle:{width:2},itemStyle:{color:c.s[0]},areaStyle:{color:c.s[0],opacity:.12},markArea:{silent:true,itemStyle:{color:c.accent,opacity:.08},data:[[{xAxis:xs[wa]},{xAxis:xs[wb]}]]}}]});
 }
 
 /* =====================================================================
@@ -1175,7 +1197,7 @@ function renderComparar(){
     series:[{name:'Sobre meta 12W',type:'bar',barMaxWidth:40,data:info.map(x=>({value:x.over,itemStyle:{color:colL(x.l),borderRadius:[4,4,0,0]}})),label:{show:true,position:'top',color:c.ink2,formatter:p=>`${p.value} de ${info[p.dataIndex].rows.length}`}}]});
   // por tipo de equipo
   const tipos=new Map();
-  for(const x of info){const[a,b]=rng(x.M,x.end,12);const d=sumP(x.M.denPre,a,b);const agg={};for(const r of x.rows){agg[r.e.tipo]=(agg[r.e.tipo]||0)+r.h12;}
+  for(const x of info){const[a,b]=rng(x.M,x.end,12);const d=sumD(x.M,x.M.dDenPre,a,b);const agg={};for(const r of x.rows){agg[r.e.tipo]=(agg[r.e.tipo]||0)+r.h12;}
     for(const k in agg){if(!tipos.has(k))tipos.set(k,{});tipos.get(k)[x.l]=d>0?agg[k]/d:0;}}
   const tk=[...tipos.keys()].map(k=>({k,m:Math.max(...Object.values(tipos.get(k)))})).sort((a,b)=>b.m-a.m).slice(0,10).map(x=>x.k).reverse();
   chart('chCmpTipo',{...o,grid:{left:8,right:24,top:36,bottom:8,containLabel:true},tooltip:{...o.tooltip,axisPointer:{type:'shadow'},valueFormatter:v=>v==null?'–':pct(v)},
@@ -1275,9 +1297,9 @@ function aParse(text){
   take(new RegExp(`\\b(?:el\\s+)?(\\d{1,2})\\s+de\\s+(${M_})(?:\\s+(?:de|del)\\s+(\\d{4}))?`,'g'),(m,d,mm,y)=>{const mo=A_MES[mm];const a=dayOfYMD(yFor(mo,y),mo,+d);setP(a,a,dstr(a));});
   take(/\b(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\b/g,(m,d,mo,y)=>{const Y=y?(y.length===2?2000+ +y:+y):yFor(mo-1);const a=dayOfYMD(Y,mo-1,+d);setP(a,a,dstr(a));});
   take(new RegExp(`\\b(?:ultim[oa]s|pasad[oa]s|previ[oa]s)\\s+(${A_NUMRE})\\s+(semanas|dias|meses)\\b|\\b(${A_NUMRE})\\s+(semanas|dias|meses)\\s+(?:atras|pasad[oa]s)\\b`,'g'),(m,n1,u1,n2,u2)=>{const n=aNum(n1||n2),u=u1||u2;if(!(n>0))return false;
-    if(u==='semanas'){setP(mondayOf(mx)-7*(n-1),mx,`últimas ${n} semanas`);sp.weeksN=n;}else if(u==='dias')setP(mx-n+1,mx,`últimos ${n} días`);else{const d=new Date(Date.UTC(aY,aM-(n-1),1));setP(Math.floor(d/864e5),mx,`últimos ${n} meses`);}});
-  take(/\b(52|12|4)\s*(?:w|semanas)\b/g,(m,n)=>{n=+n;setP(mondayOf(mx)-7*(n-1),mx,`últimas ${n} semanas`);sp.weeksN=n;});
-  take(/\b(?:esta semana|semana actual|la ultima semana|ultima semana)\b/g,()=>{setP(mondayOf(mx),mx,`semana ${wk(mondayOf(mx),true)}`);});
+    if(u==='semanas'){setP(mx-7*n+1,mx,`últimas ${n} semanas (${7*n} días)`);sp.weeksN=n;}else if(u==='dias')setP(mx-n+1,mx,`últimos ${n} días`);else{const d=new Date(Date.UTC(aY,aM-(n-1),1));setP(Math.floor(d/864e5),mx,`últimos ${n} meses`);}});
+  take(/\b(52|12|4)\s*(?:w|semanas)\b/g,(m,n)=>{n=+n;setP(mx-7*n+1,mx,`últimas ${n} semanas (${7*n} días)`);sp.weeksN=n;});
+  take(/\b(?:esta semana|semana actual|la ultima semana|ultima semana)\b/g,()=>{const dd=mx-mondayOf(mx)+1;setP(mondayOf(mx),mx,`semana ${wk(mondayOf(mx),true)}${dd<7?` (incompleta: ${dd} día${dd>1?'s':''})`:''}`);});
   take(/\b(?:la semana pasada|semana pasada|la semana anterior|semana anterior)\b/g,()=>{const a=mondayOf(mx)-7;setP(a,a+6,`semana ${wk(a,true)}`);});
   take(/\b(?:semanas?|sem|s)\s*-?\s*(\d{1,2})(?:\s*(?:a|al|hasta|y|-)\s*(?:la\s+)?(?:semana\s*|sem\s*|s\s*)?(\d{1,2}))?\b/g,(m,w1,w2)=>{
     const wkStart=(w,y)=>{const j1=dayOfYMD(y,0,1);return Math.max(j1,mondayOf(j1)+7*(w-1));};
@@ -1291,7 +1313,7 @@ function aParse(text){
   take(/\bayer\b/g,()=>{setP(mx-1,mx-1,dstr(mx-1));});
   take(/\bhoy\b/g,()=>{setP(mx,mx,dstr(mx));});
   take(/\b(?:este ano|en el ano|ano actual|en lo que va del ano)\b/g,()=>{setP(dayOfYMD(aY,0,1),mx,`${aY}`);});
-  take(/\b(?:ultimo ano|el ultimo ano|un ano)\b/g,()=>{setP(mondayOf(mx)-7*51,mx,'últimas 52 semanas');sp.weeksN=52;});
+  take(/\b(?:ultimo ano|el ultimo ano|un ano)\b/g,()=>{setP(mx-7*52+1,mx,'últimas 52 semanas (364 días)');sp.weeksN=52;});
   take(/\b(?:todo el historico|historico|desde el inicio|todos los datos|todo lo cargado|todo el tiempo|siempre|en total)\b/g,()=>{setP(mn,mx,'todo lo cargado');});
   // agrupación
   const GB=[
@@ -1418,7 +1440,7 @@ function aCtx(sp){
   if(!lines.length)lines=[...LINEAS];
   if((sp.exclLines||[]).length)lines=lines.filter(k=>!sp.exclLines.some(x=>k===x||k.endsWith(' '+x)));
   let period=sp.period;
-  if(!period){const n=state.win||12;period={a:Math.max(mn,mondayOf(mx)-7*(n-1)),b:mx,label:mondayOf(mx)-7*(n-1)<=mn?`todo lo cargado (${dstr(mn)} – ${dstr(mx)})`:`últimas ${n} semanas`,def:true};}
+  if(!period){const n=state.win||12;period={a:Math.max(mn,mx-7*n+1),b:mx,label:mx-7*n+1<=mn?`todo lo cargado (${dstr(mn)} – ${dstr(mx)})`:`últimas ${n} semanas (${7*n} días)`,def:true};}
   // equipos + texto
   let eqBy={},usedTok=new Set(),txt={},eqFound=false;
   if(sp.tokens&&sp.tokens.length){
@@ -1568,7 +1590,7 @@ function aAgg(sp,ctx){
     // serie semanal de contexto
     const wkm=new Map();for(const k of ctx.lines){const M=models[k];for(const i of aRows(M,sp,ctx)){const w=mondayOf(M.P.day[i]);const o=wkm.get(w)||{h:0,n:0};o.h+=M.P.min[i]/60;o.n++;wkm.set(w,o);}}
     const ws=[...wkm.keys()].sort((a,b)=>a-b);
-    if(ws.length>1)chart={kind:'bar',title:'Por semana',x:ws.map(w=>wk(w)),series:[{name:M0.lab,data:ws.map(w=>+val(wkm.get(w)).toFixed(4))}],fmt:meas};
+    if(ws.length>1)chart={kind:'bar',title:'Por semana',x:ws.map(w=>wk(w)+(w+6>aAnchor().mx||w<aAnchor().mn?'*':'')),series:[{name:M0.lab,data:ws.map(w=>+val(wkm.get(w)).toFixed(4))}],fmt:meas};
     return{html,table,chart,chips,actions:aActions(ctx)};
   }
   let items=[...g.values()].map(o=>({...o,v:val(o)}));
@@ -1653,13 +1675,13 @@ function aProj(sp,ctx){
     all.sort((a,b)=>b.p12-a.p12);
     if(!all.length)return{html:`Ningún equipo está sobre la meta en 12W en ${esc(aLinesLabel(ctx))}.`,chips};
     const rows=all.map(r=>{const h=sp.projH??r.h4;const k=projReturn(r.M,r.e,r.end,h);const k0=projReturn(r.M,r.e,r.end,0);return[r.e.name,r.k,pct(r.p12),nf(h*60,0)+' min/sem',k==null?'no vuelve':`${k} sem · ${wk(r.M.weeks[r.end]+7*k)}`,k0==null?'–':`${k0} sem`];});
-    return{html:`${all.length===1?'Este es el <b>único</b> equipo':`Estos son los <b>${all.length}</b> equipos`} sobre la meta en 12W y cuándo ${all.length===1?'volvería':'volverían'} a 0,5 %${sp.projH!=null?` si pierden ${nf(sp.projH*60,0)} min por semana`:' al ritmo de las últimas 4 semanas'}.`,table:{cols:['Equipo','Línea','12W hoy','Pérdida supuesta','Vuelve a meta','Sin nuevas fallas'],rows,num:[2,3]},chips};
+    return{html:`${all.length===1?'Este es el <b>único</b> equipo':`Estos son los <b>${all.length}</b> equipos`} sobre la meta en 12W y cuándo ${all.length===1?'volvería':'volverían'} a 0,5 %${sp.projH!=null?` si pierden ${nf(sp.projH*60,0)} min por semana`:' al ritmo de los últimos 28 días'}.`,table:{cols:['Equipo','Línea','12W hoy','Pérdida supuesta','Vuelve a meta','Sin nuevas fallas'],rows,num:[2,3]},chips};
   }
   const out=[];let chart=null;
   for(const x of eqs.slice(0,6)){const end=x.M.nW-1;const r=eqRow(x.M,x.e,end);const h=sp.projH??r.h4;const k=projReturn(x.M,x.e,end,h);const d4=den4(x.M,end);
     let t;if(k===0)t=`<b>${esc(x.nm)}</b> (${x.k}) ya está en meta: 12W ${pct(r.p12)}. Para mantenerse no debe pasar de unos <b>${nf(META*d4*60,0)} min/sem</b> de falla.`;
     else if(k==null)t=`Perdiendo ${nf(h*60,0)} min/sem, <b>${esc(x.nm)}</b> (${x.k}) <b>no vuelve</b> a la meta: el 12W se quedaría en ${pct(h/(d4||1))}. Necesita bajar de <b>${nf(META*d4*60,0)} min/sem</b>.`;
-    else t=`Perdiendo ${nf(h*60,0)} min/sem${sp.projH==null?' (su promedio de las últimas 4 semanas)':''}, <b>${esc(x.nm)}</b> (${x.k}) vuelve a 12W ≤ 0,5 % en <b>${k} semana${k>1?'s':''}</b>: <b>${wk(x.M.weeks[end]+7*k,true)}</b>.`;
+    else t=`Perdiendo ${nf(h*60,0)} min/sem${sp.projH==null?' (su promedio de los últimos 28 días)':''}, <b>${esc(x.nm)}</b> (${x.k}) vuelve a 12W ≤ 0,5 % en <b>${k} semana${k>1?'s':''}</b>: <b>${wk(x.M.weeks[end]+7*k,true)}</b>.`;
     out.push(t);
     if(!chart){const K=16;const hist=[],xs=[];for(let w=Math.max(0,end-11);w<=end;w++){xs.push(wk(x.M.weeks[w]));hist.push(kpiEq(x.M,x.e,w,12));}const nh=xs.length;for(let j=1;j<=K;j++)xs.push(wk(x.M.weeks[end]+7*j));
       const pr=projSeries(x.M,x.e,end,h,K),p0=projSeries(x.M,x.e,end,0,K);
