@@ -184,6 +184,8 @@ td.over{color:var(--critical);font-weight:600}
 .proj-ans{font-size:15px;margin:8px 0 0;padding:10px 12px;border-radius:8px;background:var(--surface-2)}
 .proj-ans b{font-weight:600}
 /* chat */
+.chk{display:inline-flex;align-items:center;gap:8px;font-size:14px;margin:4px 0 6px;cursor:pointer}
+.chk input{width:18px;height:18px;accent-color:var(--accent)}
 .chat{display:flex;flex-direction:column;gap:12px}
 .chat-log{display:flex;flex-direction:column;gap:14px;min-height:240px;max-height:min(70vh,900px);overflow-y:auto;padding:4px 2px}
 .msg{max-width:100%;min-width:0}
@@ -286,7 +288,7 @@ footer{padding-block:18px 32px;border-top:1px solid var(--line);font-size:12.5px
     </div>
     <div class="panel">
       <h3>¿En qué semana vuelve a 12W ≤ 0,5 %?</h3>
-      <p class="sub">Proyección del 12W móvil si en las próximas semanas el equipo pierde cierta cantidad de tiempo. Se usan los promedios de los últimos 28 días con datos, llevados a semanas de 7 días (así una semana incompleta no los distorsiona).</p>
+      <p class="sub">Proyección del 12W móvil si en las próximas semanas el equipo pierde cierta cantidad de tiempo. Se usan los promedios de los últimos 28 días, llevados a una semana de 168 horas según el tiempo realmente registrado (así una semana o un día incompleto no los distorsiona).</p>
       <div class="proj-ctl">
         <label for="projMin">Estimación de tiempo perdido por semana</label>
         <input type="number" id="projMin" min="0" step="1" style="width:110px"> <span>min/sem</span>
@@ -366,7 +368,10 @@ footer{padding-block:18px 32px;border-top:1px solid var(--line);font-size:12.5px
       <input type="file" id="fileAll" accept=".xlsx,.xlsm" multiple hidden>
       <div id="loadProg"></div>
     </div>
-    <div class="panel"><h3>Líneas detectadas</h3><div class="tablebox"><table id="linesTable"></table></div></div>
+    <div class="panel"><h3>Líneas detectadas</h3>
+      <p class="sub">Los turnos que estaban <b>en curso</b> al descargar el reporte (sin fecha de cierre y con tiempo total incompleto) no se cuentan: su tiempo aún no está clasificado y el sistema lo deja como falla («Sin categorizar», «Speed losses · Automatically Generated»), lo que hunde el LEF. Descarga de nuevo el reporte cuando esos turnos estén cerrados y súbelo: reemplaza esas fechas.</p>
+      <label class="chk" for="incOpen"><input type="checkbox" id="incOpen"> Incluir los turnos en curso (no recomendado)</label>
+      <div class="tablebox"><table id="linesTable"></table></div></div>
     <div class="panel"><h3>Reportes cargados</h3><div class="tablebox"><table id="repTable"></table></div></div>
     <div class="panel">
       <h3>Cómo funciona</h3>
@@ -500,7 +505,7 @@ function parserModule(isWorker){
 
   const PF={linea:'LINEA',planta:'PLANTA',hini2:'HORA INICIO',fecha:'FECHA',turno:'TURNO',llen:'LLENADORA',hini:'HORA INICIO LLENADORA',parada:'PARADA',tipo:'TIPO PARADA',sub:'SUBTIPO PARADA',l4:'SUBTIPO PARADA L4',prod:'NOMBRE PRODUCTO',teq:'TIPO EQUIPO',eq:'EQUIPO',sc:'SUB CONJUNTO',det:'DETALLE',min:'TIEMPO PARADA (MIN)',hrs:'TIEMPO PARADA (HRS)',minL:'TIEMPO PARADA LLENADORA (MIN)',causa:'CAUSA RAIZ',acc:'ACCIONES',clas:'CLASIFICACION DEL TIEMPO DE PARADA',api:'TIPO PARADA API'};
   const PDICT=['linea','planta','turno','llen','parada','tipo','sub','l4','prod','teq','eq','sc','det','causa','acc','clas','api'];
-  const TF={linea:'LINEA',planta:'PLANTA',fecha:'FECHA',turno:'TURNO',hl:'PRODUCCION HL',nchg:'# CHANGEOVERS',chg:'CHANGEOVERS TIME (HRS)',total:'TOTAL TIME (HRS)',ept:'EPT (HRS)',nst:'NST REAL (HRS)',dpa:'DPA REAL (HRS)',ec:'EXTERNAL CAUSES REAL (HRS)',ic:'INTERNAL CAUSES REAL (HRS)'};
+  const TF={linea:'LINEA',planta:'PLANTA',cierre:'FECHA CIERRE',fecha:'FECHA',turno:'TURNO',hl:'PRODUCCION HL',nchg:'# CHANGEOVERS',chg:'CHANGEOVERS TIME (HRS)',total:'TOTAL TIME (HRS)',ept:'EPT (HRS)',nst:'NST REAL (HRS)',dpa:'DPA REAL (HRS)',ec:'EXTERNAL CAUSES REAL (HRS)',ic:'INTERNAL CAUSES REAL (HRS)'};
 
   function headerMap(row,fields){const idx={};const want={};for(const k in fields)want[fields[k]]=k;
     for(let i=0;i<row.length;i++){if(row[i]==null)continue;const h=norm(row[i]);const k=want[h];if(k&&idx[k]===undefined)idx[k]=i;}return idx;}
@@ -539,19 +544,19 @@ function parserModule(isWorker){
     if(!hp) throw new Error('BD PARADAS está vacía o no tiene encabezados reconocibles.');
 
     // ---- BD TIEMPOS
-    const TD={turno:makeDict(),linea:makeDict(),planta:makeDict()};const TA={day:[],turno:[],linea:[],planta:[],hl:[],nchg:[],chg:[],total:[],ept:[],nst:[],dpa:[],ec:[],ic:[]};
+    const TD={turno:makeDict(),linea:makeDict(),planta:makeDict()};const TA={day:[],turno:[],linea:[],planta:[],cerr:[],hl:[],nchg:[],chg:[],total:[],ept:[],nst:[],dpa:[],ec:[],ic:[]};
     let ht=null;scanned=0;
     await streamRows(buf,zip[tPath],sst,row=>{
       if(!ht){scanned++;const h=headerMap(row,TF);if(h.fecha!==undefined&&h.turno!==undefined&&h.ept!==undefined&&h.total!==undefined){ht=h;}else if(scanned>400){throw new Error('No encontré los encabezados (FECHA, TURNO, EPT) en BD TIEMPOS.');}return;}
       const day=toDay(row[ht.fecha]);const tot=row[ht.total]; if(day==null||tot==null||tot==='') return;
-      TA.day.push(day);TA.turno.push(TD.turno.id(row[ht.turno]));TA.linea.push(TD.linea.id(ht.linea!==undefined?row[ht.linea]:''));TA.planta.push(TD.planta.id(ht.planta!==undefined?row[ht.planta]:''));
+      TA.day.push(day);TA.turno.push(TD.turno.id(row[ht.turno]));TA.cerr.push(ht.cierre===undefined?2:(row[ht.cierre]==null||String(row[ht.cierre]).trim()===''?0:1));TA.linea.push(TD.linea.id(ht.linea!==undefined?row[ht.linea]:''));TA.planta.push(TD.planta.id(ht.planta!==undefined?row[ht.planta]:''));
       for(const k of ['hl','nchg','chg','total','ept','nst','dpa','ec','ic']) TA[k].push(ht[k]!==undefined?num(row[ht[k]]):0);
     },f=>prog('Leyendo BD TIEMPOS',0.88+f*0.11));
     if(!ht) throw new Error('BD TIEMPOS no tiene encabezados reconocibles.');
 
-    const P={n:A.day.length,day:Int32Array.from(A.day),hini:Float32Array.from(A.hini),min:Float32Array.from(A.min),minL:Float32Array.from(A.minL),dict:{}};
+    const P={n:A.day.length,day:Int32Array.from(A.day),hini:Float32Array.from(A.hini),min:Float64Array.from(A.min),minL:Float64Array.from(A.minL),dict:{}};
     for(const k of PDICT){P[k]=Int32Array.from(A[k]);P.dict[k]=D[k].list;}
-    const T={n:TA.day.length,day:Int32Array.from(TA.day),turno:Int32Array.from(TA.turno),linea:Int32Array.from(TA.linea),planta:Int32Array.from(TA.planta),dict:{turno:TD.turno.list,linea:TD.linea.list,planta:TD.planta.list}};
+    const T={n:TA.day.length,day:Int32Array.from(TA.day),cerr:Uint8Array.from(TA.cerr),turno:Int32Array.from(TA.turno),linea:Int32Array.from(TA.linea),planta:Int32Array.from(TA.planta),dict:{turno:TD.turno.list,linea:TD.linea.list,planta:TD.planta.list}};
     for(const k of ['hl','nchg','chg','total','ept','nst','dpa','ec','ic']) T[k]=Float64Array.from(TA[k]);
     prog('Listo',1);
     return {P,T};
@@ -645,14 +650,14 @@ function buildModel(slot,raw){
   const dHas=new Float64Array(nD);
   for(let i=0;i<T.n;i++){const di=T.day[i]-d0;if(di<0||di>=nD)continue;dHas[di]=1;for(const k in dT)dT[k][di]+=T[k][i];}
   const dDen=new Float64Array(nD);for(let i=0;i<nD;i++)dDen[i]=dT.ept[i]+dT.ic[i];
-  const dDenPre=pre(dDen),dHasPre=pre(dHas);const dTPre={};for(const k in dT)dTPre[k]=pre(dT[k]);
+  const dDenPre=pre(dDen),dHasPre=pre(dHas);const dTTPre=pre(dT.total);const dTPre={};for(const k in dT)dTPre[k]=pre(dT[k]);
   for(const e of eqs){e.dfail=new Float64Array(nD);e.dcnt=new Float64Array(nD);for(const i of e.rows){const di=P.day[i]-d0;if(di<0||di>=nD)continue;e.dfail[di]+=P.min[i]/60;e.dcnt[di]++;}e.dpre=pre(e.dfail);e.dcpre=pre(e.dcnt);}
   const wEnd=new Int32Array(nW);for(let w=0;w<nW;w++)wEnd[w]=weeks[w];
   for(let i=0;i<T.n;i++){const w=tWeek[i];if(T.day[i]>wEnd[w])wEnd[w]=T.day[i];}
   for(let i=0;i<P.n;i++){const w=pWeek[i];if(w>=0&&P.day[i]>wEnd[w]&&P.day[i]<=lastDay)wEnd[w]=P.day[i];}
   const wDays=new Int16Array(nW);{const seen=new Set();for(let i=0;i<T.n;i++){const d=T.day[i];if(!seen.has(d)){seen.add(d);wDays[tWeek[i]]++;}}}
   const eqIds=new Set();for(let i=0;i<P.n;i++){if(P.dict.eq[P.eq[i]])eqIds.add(P.eq[i]);}
-  return {slot,P,T,weeks,nW,wIdx,W,den,denPre,eqs,icCode,nstCode,microCode,pWeek,tWeek,pre,firstDay,lastDay,wDays,eqIds,d0,nD,dDenPre,dHasPre,dTPre,wEnd};
+  return {slot,P,T,weeks,nW,wIdx,W,den,denPre,eqs,icCode,nstCode,microCode,pWeek,tWeek,pre,firstDay,lastDay,wDays,eqIds,d0,nD,dDenPre,dHasPre,dTPre,dTTPre,wEnd};
 }
 /* Ventana en días: termina el último día con datos de la semana de corte y dura 7×N días. */
 function rng(M,end,N,shift=0){const b=M.wEnd[end]-shift*7*N;return[b-7*N+1,b];}
@@ -671,8 +676,10 @@ function eqRow(M,e,end){
   return{e,p52,p12,p4,h12,n12,mttr:n12?h12*60/n12:null,st:statusOf(p52,p12),spark,ret,h4};
 }
 /* Promedios semanales de los últimos 28 días: total ÷ días con datos × 7 (una semana incompleta no los baja). */
-function lossRate(M,e,end){const[a,b]=rng(M,end,4);const d=daysIn(M,a,b);return d?sumD(M,e.dpre,a,b)/d*7:0;}
-function den4(M,end){const[a,b]=rng(M,end,4);const d=daysIn(M,a,b);return d?sumD(M,M.dDenPre,a,b)/d*7:0;}
+/* Por horas de calendario registradas (tiempo total de los turnos): un día con un solo turno cuenta como 8 h, no como un día entero. */
+function calWeeks(M,a,b){return sumD(M,M.dTTPre,a,b)/168;}
+function lossRate(M,e,end){const[a,b]=rng(M,end,4);const w=calWeeks(M,a,b);return w>0?sumD(M,e.dpre,a,b)/w:0;}
+function den4(M,end){const[a,b]=rng(M,end,4);const w=calWeeks(M,a,b);return w>0?sumD(M,M.dDenPre,a,b)/w:0;}
 function projSeries(M,e,end,h,K=20,N=12){
   const d4=den4(M,end);const out=[];const b=M.wEnd[end];
   for(let k=1;k<=K;k++){const past=7*Math.max(0,N-k);let num=k*h,dd=k*d4;
@@ -692,7 +699,7 @@ function windowAgg(M,end,N,shift=0){
   s.oee=s.total-s.nst-s.dpa>0?s.ept/(s.total-s.nst-s.dpa):null;
   s.gly=s.total-s.nst>0?s.ept/(s.total-s.nst):null;
   s.oae=s.total>0?s.ept/s.total:null;
-  s.a=a;s.b=b;s.n=Math.max(s.days,1)/7;return s;
+  s.a=a;s.b=b;s.n=s.total>0?s.total/168:Math.max(s.days,1)/7;return s;
 }
 function weeklyInd(M){const W=M.W;return M.weeks.map((_,w)=>{const e=W.ept[w],t=W.total[w];return{
   lef:e+W.ic[w]>0?e/(e+W.ic[w]):null,oee:t-W.nst[w]-W.dpa[w]>0?e/(t-W.nst[w]-W.dpa[w]):null,gly:t-W.nst[w]>0?e/(t-W.nst[w]):null,oae:t>0?e/t:null};});}
@@ -702,7 +709,7 @@ function weeklyInd(M){const W=M.W;return M.weeks.map((_,w)=>{const e=W.ept[w],t=
    Cada reporte subido se guarda como un "lote". Los lotes se combinan:
    si dos lotes traen la misma línea en las mismas fechas, gana el más nuevo.
    ===================================================================== */
-const state={slot:null,cut:null,win:12,view:'cargar',eq:null,sort:{k:'p12',dir:-1},stFilter:new Set(),search:'',projMin:null};
+const state={incOpen:false,slot:null,cut:null,win:12,view:'cargar',eq:null,sort:{k:'p12',dir:-1},stFilter:new Set(),search:'',projMin:null};
 const models={};let chunks=[];const loadInfo={active:false,file:'',step:'',prog:0,err:null,queue:0};
 let lineInfo={};
 const DB_NAME='confiabilidad-envase',STORE='reportes';
@@ -710,7 +717,7 @@ function idb(){return new Promise((res,rej)=>{try{const r=indexedDB.open(DB_NAME
 async function idbPut(k,v){try{const db=await idb();await new Promise((res,rej)=>{const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).put(v,k);tx.oncomplete=res;tx.onerror=()=>rej(tx.error);});return true;}catch(e){console.warn('No se pudo guardar en el navegador',e);return false;}}
 async function idbDel(k,store=STORE){try{const db=await idb();await new Promise(res=>{const tx=db.transaction(store,'readwrite');k==null?tx.objectStore(store).clear():tx.objectStore(store).delete(k);tx.oncomplete=res;tx.onerror=res;});}catch(e){}}
 async function idbAll(store=STORE){try{const db=await idb();return await new Promise(res=>{const out={};const tx=db.transaction(store,'readonly');const st=tx.objectStore(store);const rq=st.openCursor();rq.onsuccess=()=>{const c=rq.result;if(c){out[c.key]=c.value;c.continue();}else res(out);};rq.onerror=()=>res(out);});}catch(e){return{};}}
-function savePrefs(){try{localStorage.setItem('ce-prefs',JSON.stringify({slot:state.slot,win:state.win}));}catch(e){}}
+function savePrefs(){try{localStorage.setItem('ce-prefs',JSON.stringify({slot:state.slot,win:state.win,incOpen:state.incOpen}));}catch(e){}}
 function loadPrefs(){try{return JSON.parse(localStorage.getItem('ce-prefs')||'{}');}catch(e){return{};}}
 
 /* Nombre corto de la línea: "TREN-5" → "L5". Si hay varias plantas, se antepone la planta. */
@@ -737,16 +744,34 @@ function rebuild(){
     c.lines=Object.keys(c._rng).sort((a,b)=>lineSortKey(a)-lineSortKey(b));
   }
   // 2) filas aceptadas (las fechas cubiertas por un lote más nuevo se descartan)
+  /* Turnos EN CURSO al descargar el reporte: sin FECHA CIERRE y con un tiempo total distinto al del turno
+     normal de la línea. Su tiempo aún no está clasificado (el sistema lo deja como "Sin categorizar" o
+     "Speed losses · Automatically Generated" dentro de causas internas), así que se excluyen de todo
+     (BD TIEMPOS y sus paradas) salvo que el usuario pida incluirlos. Si el reporte no trae FECHA CIERRE,
+     basta con que el tiempo total no cuadre. */
+  const excl=new Set();const exclInfo={};
+  for(const c of sorted){
+    const tts={};for(let i=0;i<c.T.n;i++){(tts[c._tKey[i]]||(tts[c._tKey[i]]=[])).push(c.T.total[i]);}
+    const esperado={};for(const k in tts){const a=tts[k].slice().sort((x,y)=>x-y);esperado[k]=a[Math.floor(a.length/2)]||8;}
+    c._tEx=new Uint8Array(c.T.n);
+    for(let i=0;i<c.T.n;i++){const k=c._tKey[i];const ce=c.T.cerr?c.T.cerr[i]:2;
+      if(ce!==1&&Math.abs(c.T.total[i]-esperado[k])>0.05){c._tEx[i]=1;excl.add(c.id+'|'+k+'|'+c.T.day[i]+'|'+normS(c.T.dict.turno[c.T.turno[i]]));}}
+  }
   const per={};const newPer=()=>{const P={day:[],hini:[],min:[],minL:[]};for(const f of PDF)P[f]=[];const T={day:[],turno:[]};for(const k of TK)T[k]=[];return{P,T,files:new Set()};};
   sorted.forEach((c,ci)=>{
     const newer=sorted.slice(ci+1);
     const covered=(k,d)=>{for(const n of newer){const r=n._rng[k];if(r&&d>=r[0]&&d<=r[1])return true;}return false;};
     const pm={};for(const f of PDF)pm[f]=(c.P.dict[f]||[]).map(v=>gid(f,v));
-    for(let i=0;i<c.P.n;i++){const k=c._pKey[i],d=c.P.day[i];if(covered(k,d))continue;const o=per[k]||(per[k]=newPer());o.files.add(c.file);
+    const pTurno=(c.P.dict.turno||[]).map(normS);
+    for(let i=0;i<c.P.n;i++){const k=c._pKey[i],d=c.P.day[i];if(covered(k,d))continue;
+      if(!state.incOpen&&excl.has(c.id+'|'+k+'|'+d+'|'+pTurno[c.P.turno[i]]))continue;
+      const o=per[k]||(per[k]=newPer());o.files.add(c.file);
       o.P.day.push(d);o.P.hini.push(c.P.hini[i]);o.P.min.push(c.P.min[i]);o.P.minL.push(c.P.minL[i]);
       for(const f of PDF)o.P[f].push(c.P[f]?pm[f][c.P[f][i]]:gid(f,''));}
     const tm=(c.T.dict.turno||[]).map(v=>gid('tturno',v));
-    for(let i=0;i<c.T.n;i++){const k=c._tKey[i],d=c.T.day[i];if(covered(k,d))continue;const o=per[k]||(per[k]=newPer());o.files.add(c.file);
+    for(let i=0;i<c.T.n;i++){const k=c._tKey[i],d=c.T.day[i];if(covered(k,d))continue;
+      if(c._tEx[i]){(exclInfo[k]||(exclInfo[k]=[])).push({day:d,turno:c.T.dict.turno[c.T.turno[i]],tt:c.T.total[i],ept:c.T.ept[i],ic:c.T.ic[i],incl:state.incOpen});if(!state.incOpen)continue;}
+      const o=per[k]||(per[k]=newPer());o.files.add(c.file);
       o.T.day.push(d);o.T.turno.push(tm[c.T.turno[i]]);for(const f of TK)o.T[f].push(c.T[f][i]);}
   });
   for(const f of [...PDF,'tturno'])gid(f,'');
@@ -754,17 +779,17 @@ function rebuild(){
   lineInfo={};
   for(const k in per){
     const o=per[k];
-    const P={n:o.P.day.length,day:Int32Array.from(o.P.day),hini:Float32Array.from(o.P.hini),min:Float32Array.from(o.P.min),minL:Float32Array.from(o.P.minL),dict:{}};
+    const P={n:o.P.day.length,day:Int32Array.from(o.P.day),hini:Float32Array.from(o.P.hini),min:Float64Array.from(o.P.min),minL:Float64Array.from(o.P.minL),dict:{}};
     for(const f of PDF){P[f]=Int32Array.from(o.P[f]);P.dict[f]=G[f].list;}
     const T={n:o.T.day.length,day:Int32Array.from(o.T.day),turno:Int32Array.from(o.T.turno),dict:{turno:G.tturno.list}};
     for(const f of TK)T[f]=Float64Array.from(o.T[f]);
-    lineInfo[k]={rowsP:P.n,rowsT:T.n,files:[...o.files]};
+    lineInfo[k]={rowsP:P.n,rowsT:T.n,files:[...o.files],open:(exclInfo[k]||[]).sort((a,b)=>a.day-b.day||String(a.turno).localeCompare(String(b.turno)))};
     if(T.n>0){try{models[k]=buildModel(k,{P,T});}catch(e){console.warn('Línea',k,e);lineInfo[k].err=e.message;}}
     else lineInfo[k].err='Sin filas en BD TIEMPOS: no se puede calcular el 52-12-4.';
   }
   LINEAS=Object.keys(models).sort((a,b)=>lineSortKey(a)-lineSortKey(b));
   if(!models[state.slot]){state.slot=LINEAS[0]||null;state.cut=null;}
-  for(const c of sorted){delete c._pKey;delete c._tKey;}
+  for(const c of sorted){delete c._pKey;delete c._tKey;delete c._tEx;}
 }
 
 /* =====================================================================
@@ -792,7 +817,8 @@ async function loadFile(file){
     loadInfo.step='Combinando';renderLoadProg();
     rebuild();
     const ok=await idbPut(c.id,{id:c.id,file:c.file,loadedAt:c.loadedAt,P:c.P,T:c.T,minDay:mn,maxDay:mx,rowsP:c.rowsP,rowsT:c.rowsT});
-    toast(`${file.name}: ${c.lines.join(', ')} · ${dstr(mn)} a ${dstr(mx)}${ok?'':' (no se pudo guardar en el navegador)'}`);
+    const nOpen=Object.values(lineInfo).reduce((s,x)=>s+(x.open||[]).filter(o=>o.day>=mn&&o.day<=mx).length,0);
+    toast(`${file.name}: ${c.lines.join(', ')} · ${dstr(mn)} a ${dstr(mx)}${nOpen&&!state.incOpen?` · ${nOpen} turnos en curso no se cuentan`:''}${ok?'':' (no se pudo guardar en el navegador)'}`);
     afterDataChange();
   }catch(e){console.error(e);loadInfo.err=`${file.name}: ${e.message||e}`;}
   finally{loadInfo.active=false;renderLoadProg();renderCargar();renderPlates();}
@@ -832,7 +858,8 @@ function renderCtx(){
   const part=M.wDays[state.cut]<7;
   $('#ctx').innerHTML=`<b>${state.slot}</b> · ventana ${dstr(a2,false)} – ${dstr(b)} (${N*7} días)`
     +(d<N*7?` · <span class="up-bad">solo hay ${d} de ${N*7} días</span>`:'')
-    +(part?` · <span title="La semana de corte no está completa: las ventanas cuentan días hacia atrás desde el último día con datos y los promedios semanales se calculan por día × 7.">${wk(M.weeks[state.cut])} incompleta (${M.wDays[state.cut]} días)*</span>`:'');
+    +((lineInfo[state.slot]?.open||[]).length&&!state.incOpen?` · <span class="up-bad" title="Turnos que estaban en curso al descargar el reporte: no se cuentan porque su tiempo aún no está clasificado. Detalle en Cargar reportes.">${lineInfo[state.slot].open.length} turno${lineInfo[state.slot].open.length>1?'s':''} en curso excluido${lineInfo[state.slot].open.length>1?'s':''} (${[...new Set(lineInfo[state.slot].open.map(x=>dstr(x.day,false)))].join(', ')})</span>`:'')
+    +(part?` · <span title="La semana de corte no está completa: las ventanas cuentan días hacia atrás desde el último día con datos y los promedios semanales se calculan por día × 7.">${wk(M.weeks[state.cut])} incompleta (${M.wDays[state.cut]} día${M.wDays[state.cut]>1?"s":""})*</span>`:'');
 }
 function setView(v){
   state.view=v;
@@ -1035,7 +1062,7 @@ function renderEquipo(){
   const[a,b]=rng(M,end,N);const hN=sumD(M,e.dpre,a,b),nN=sumD(M,e.dcpre,a,b);let n5=0;for(const i of e.rows){const w=M.P.day[i];if(w>=a&&w<=b&&M.P.min[i]>=5)n5++;}
   const s=windowAgg(M,end,N);
   $('#tilesEq').innerHTML=tile(`Paradas ${N} sem`,nf(nN),`${nf(n5)} de 5 min o más`)+tile('Minutos por parada',nN?nf(hN*60/nN,1):'–','promedio (MTTR aprox.)')+
-    tile('Horas de producción entre paradas',nN?nf(s.ept/nN,1):'–','EPT ÷ paradas (MTBF aprox.)')+tile('Pérdida media por semana',nf(r.h4*60,0)+' <small style="font-size:16px;color:var(--muted)">min/sem</small>','últimos 28 días (promedio diario × 7)');
+    tile('Horas de producción entre paradas',nN?nf(s.ept/nN,1):'–','EPT ÷ paradas (MTBF aprox.)')+tile('Pérdida media por semana',nf(r.h4*60,0)+' <small style="font-size:16px;color:var(--muted)">min/sem</small>','últimos 28 días, llevado a una semana de 168 h');
   // rolling
   const from=Math.max(0,end-51);const xs=[],s52=[],s12=[],s4=[],wh=[];
   const ok=(w,N)=>w>=N-1||M.nW<N;for(let w=from;w<=end;w++){xs.push(wkM(M,w));s52.push(ok(w,52)?kpiEq(M,e,w,52):null);s12.push(ok(w,12)?kpiEq(M,e,w,12):null);s4.push(ok(w,4)?kpiEq(M,e,w,4):null);wh.push(+e.fail[w].toFixed(3));}
@@ -1101,7 +1128,7 @@ function renderLinea(){
   const M=curModel(),end=state.cut,N=state.win;const{c,o}=base();
   const s=windowAgg(M,end,N);const sp=windowAgg(M,end,N,1);
   const t=(k,lab)=>{const d=delta(s[k],sp?.[k],true,v=>nf(v*100,1)+' pts');return tile(lab+` ${N} sem`,pct(s[k],1),d[0],d[1]);};
-  $('#tilesLin').innerHTML=t('lef','LEF')+t('oee','OEE')+t('gly','GLY')+t('oae','OAE')+tile('Producción',nf(s.hl,0)+' <small style="font-size:16px;color:var(--muted)">hL</small>',`${nf(s.hl/s.n,0)} hL por semana (prom. diario × 7)`)+tile('Cambios de formato',nf(s.nchg),hrs(s.chg)+' en cambios');
+  $('#tilesLin').innerHTML=t('lef','LEF')+t('oee','OEE')+t('gly','GLY')+t('oae','OAE')+tile('Producción',nf(s.hl,0)+' <small style="font-size:16px;color:var(--muted)">hL</small>',`${nf(s.hl/s.n,0)} hL por semana de 168 h`)+tile('Cambios de formato',nf(s.nchg),hrs(s.chg)+' en cambios');
   const xs=M.weeks.slice(0,end+1).map((m,w)=>wkM(M,w));const ind=weeklyInd(M).slice(0,end+1);
   const[a,b]=rng(M,end,N);const[wa,wb]=wRange(M,a,b);
   const shade={silent:true,itemStyle:{color:c.accent,opacity:.08},data:[[{xAxis:xs[wa]},{xAxis:xs[wb]}]]};
@@ -1215,15 +1242,19 @@ function renderLoadProg(){
   else el.innerHTML=loadInfo.err?`<p class="err" style="margin-top:12px">${esc(loadInfo.err)}</p>`:'';
   renderPlates();
 }
+function openTxt(list){if(!list||!list.length)return '<span class="neutral">ninguno</span>';
+  return list.map(x=>`${dstr(x.day,false)} ${esc(String(x.turno).replace(/turno\s*/i,'T'))} <span class="neutral">(${nf(x.tt,1)} h${x.ept+x.ic>0?`, LEF provisional ${pct(x.ept/(x.ept+x.ic),0)}`:''})</span>`).join('<br>');}
 function renderCargar(){
+  $('#incOpen').checked=state.incOpen;
   renderLoadProg();
   const keys=Object.keys(lineInfo).sort((a,b)=>lineSortKey(a)-lineSortKey(b));
-  $('#linesTable').innerHTML=keys.length?`<thead><tr><th>Línea</th><th>Desde</th><th>Hasta</th><th class="n">Semanas</th><th class="n">Turnos</th><th class="n">Paradas</th><th class="n">Equipos con fallas</th><th></th></tr></thead><tbody>${keys.map(k=>{const M=models[k],li=lineInfo[k];
-    return M?`<tr><td><b style="font-family:var(--f-display);font-size:18px">${esc(k)}</b></td><td style="white-space:nowrap">${dstr(M.firstDay)}</td><td style="white-space:nowrap">${dstr(M.lastDay)}</td><td class="n">${M.nW}</td><td class="n">${nf(li.rowsT)}</td><td class="n">${nf(li.rowsP)}</td><td class="n">${M.eqs.length}</td><td><button class="btn ghost" type="button" data-see="${esc(k)}">Ver</button></td></tr>`
-      :`<tr><td><b>${esc(k)}</b></td><td colspan="7" class="err">${esc(li.err||'Sin datos suficientes')}</td></tr>`;}).join('')}</tbody>`:'<tbody><tr><td class="neutral">Todavía no hay líneas. Sube un reporte para empezar.</td></tr></tbody>';
+  $('#linesTable').innerHTML=keys.length?`<thead><tr><th>Línea</th><th>Desde</th><th>Hasta</th><th class="n">Semanas</th><th class="n">Turnos</th><th class="n">Paradas</th><th class="n">Equipos con fallas</th><th>Turnos en curso ${state.incOpen?'(incluidos)':'(excluidos)'}</th><th></th></tr></thead><tbody>${keys.map(k=>{const M=models[k],li=lineInfo[k];
+    return M?`<tr><td><b style="font-family:var(--f-display);font-size:18px">${esc(k)}</b></td><td style="white-space:nowrap">${dstr(M.firstDay)}</td><td style="white-space:nowrap">${dstr(M.lastDay)}</td><td class="n">${M.nW}</td><td class="n">${nf(li.rowsT)}</td><td class="n">${nf(li.rowsP)}</td><td class="n">${M.eqs.length}</td><td style="font-size:13px">${openTxt(li.open)}</td><td><button class="btn ghost" type="button" data-see="${esc(k)}">Ver</button></td></tr>`
+      :`<tr><td><b>${esc(k)}</b></td><td colspan="8" class="err">${esc(li.err||'Sin datos suficientes')}</td></tr>`;}).join('')}</tbody>`:'<tbody><tr><td class="neutral">Todavía no hay líneas. Sube un reporte para empezar.</td></tr></tbody>';
   const cs=[...chunks].sort((a,b)=>b.loadedAt-a.loadedAt);
   $('#repTable').innerHTML=cs.length?`<thead><tr><th>Archivo</th><th>Fechas</th><th>Líneas</th><th class="n">Filas</th><th>Cargado</th><th></th></tr></thead><tbody>${cs.map(c=>`<tr><td style="max-width:260px;word-break:break-all">${esc(c.file)}</td><td style="white-space:nowrap">${dstr(c.minDay)} – ${dstr(c.maxDay)}</td><td>${esc((c.lines||[]).join(', '))}</td><td class="n">${nf(c.rowsP)} + ${nf(c.rowsT)}</td><td style="white-space:nowrap">${new Date(c.loadedAt).toLocaleString('es-CO',{dateStyle:'medium',timeStyle:'short'})}</td><td><button class="btn ghost" type="button" data-del="${c.id}">Quitar</button></td></tr>`).join('')}</tbody>`:'<tbody><tr><td class="neutral">Ningún reporte cargado.</td></tr></tbody>';
 }
+$('#incOpen').addEventListener('change',e=>{state.incOpen=e.target.checked;savePrefs();rebuild();afterDataChange();toast(state.incOpen?'Turnos en curso incluidos en los cálculos':'Turnos en curso excluidos de los cálculos');});
 $('#linesTable').addEventListener('click',e=>{const b=e.target.closest('[data-see]');if(b){state.slot=b.dataset.see;state.cut=null;state.eq=null;savePrefs();afterDataChange();setView('resumen');}});
 $('#repTable').addEventListener('click',async e=>{const b=e.target.closest('[data-del]');if(!b)return;const id=b.dataset.del;const c=chunks.find(x=>x.id===id);chunks=chunks.filter(x=>x.id!==id);await idbDel(id);rebuild();afterDataChange();renderCargar();toast(`Reporte quitado${c?': '+c.file:''}`);});
 for(const ev of ['dragenter','dragover'])$('#dropAll').addEventListener(ev,e=>{e.preventDefault();$('#dropAll').classList.add('drag');});
@@ -1702,7 +1733,9 @@ function aMtbf(sp,ctx){
   return{html,table:{cols:['Equipo','Línea','Fallas','Horas','MTTR (min)','MTBF (h prod.)'],rows:sh.map(x=>[x.nm,x.k,nf(x.n),hrs(x.h),nf(x.mttr,1),nf(x.mtbf,1)]),num:[2,3,4,5]},chips,note:'MTTR = minutos promedio por falla. MTBF = horas de producción efectiva (EPT) de la línea ÷ número de fallas (aproximado).',actions:aActions(ctx)};
 }
 function aOther(sp,ctx){if(ctx.cat==='all')return'';const by={};let n=0;for(const k of ctx.lines){const M=models[k];for(const i of aRows(M,sp,{...ctx,cat:'all'})){const c=PARADA_ES[normS(M.P.dict.parada[M.P.parada[i]])]||'otras';by[c]=(by[c]||0)+M.P.min[i]/60;n++;}}
-  return n?` Sí hubo ${nf(n)} paradas de otro tipo: ${Object.entries(by).sort((a,b)=>b[1]-a[1]).map(([c,h])=>`${c.toLowerCase()} ${hrs(h)}`).join(', ')}.`:' Tampoco hay paradas de otro tipo en esas fechas.';}
+  const ab=state.incOpen?[]:ctx.lines.flatMap(k=>(lineInfo[k]?.open||[]).filter(o=>o.day>=ctx.period.a&&o.day<=ctx.period.b));
+  const nota=ab.length?` Ojo: ${ab.length} turno${ab.length>1?'s':''} de esas fechas estaba${ab.length>1?'n':''} en curso al descargar el reporte y no se cuenta${ab.length>1?'n':''} (su tiempo aún no estaba clasificado); sube un reporte descargado después del cierre.`:'';
+  return (n?` Sí hubo ${nf(n)} paradas de otro tipo: ${Object.entries(by).sort((a,b)=>b[1]-a[1]).map(([c,h])=>`${c.toLowerCase()} ${hrs(h)}`).join(', ')}.`:' Tampoco hay paradas de otro tipo en esas fechas.')+nota;}
 function aEvents(sp,ctx){
   const chips=aChips(sp,ctx);const all=[];
   for(const k of ctx.lines){const M=models[k];for(const i of aRows(M,sp,ctx))all.push({k,M,i});}
@@ -1746,7 +1779,8 @@ function aIndic(sp,ctx){
   const chips=aChips(sp,ctx,'noCat');const mets=sp.indM.length?sp.indM:['lef'];const multi=ctx.lines.length>1;const tk=aTKey(sp);
   if(!tk){
     const rows=[];const tot={ept:0,ic:0,ec:0,dpa:0,nst:0,total:0,hl:0};
-    for(const k of ctx.lines){const t=aTAgg(models[k],sp,ctx).get('_');if(t)for(const f in tot)tot[f]+=t[f];rows.push([k,...mets.map(m=>pct(aInd(t,m),1))]);}
+    const sinDatos=[];for(const k of ctx.lines){const t=aTAgg(models[k],sp,ctx).get('_');if(t)for(const f in tot)tot[f]+=t[f];else sinDatos.push(k);rows.push([k,...mets.map(m=>pct(aInd(t,m),1))]);}
+    if(sinDatos.length===ctx.lines.length){const ab=ctx.lines.flatMap(k=>(lineInfo[k]?.open||[]).filter(o=>o.day>=ctx.period.a&&o.day<=ctx.period.b));return{html:`No hay turnos completos de ${esc(aLinesLabel(ctx))} en ${esc(ctx.period.label)}.${ab.length&&!state.incOpen?` Hay ${ab.length} turno${ab.length>1?'s':''} que estaba${ab.length>1?'n':''} en curso al descargar el reporte y no se cuenta${ab.length>1?'n':''}: su tiempo aún no estaba clasificado. Sube un reporte descargado después del cierre.`:''}`,chips};}
     if(multi)rows.push(['Total',...mets.map(m=>pct(aInd(tot,m),1))]);
     const html=multi?`${mets.map(m=>m.toUpperCase()).join(' y ')} por línea, ${esc(ctx.period.label)}. Total planta: ${mets.map(m=>`${m.toUpperCase()} <b>${pct(aInd(tot,m),1)}</b>`).join(', ')}.`
       :`${esc(ctx.lines[0])}, ${esc(ctx.period.label)}: ${mets.map(m=>`${m.toUpperCase()} <b>${pct(aInd(tot,m),1)}</b>`).join(', ')}.`;
@@ -1845,7 +1879,7 @@ const rerender=()=>{if(state.view!=='cargar'&&state.view!=='preguntar')renderVie
 try{matchMedia('(prefers-color-scheme: dark)').addEventListener('change',rerender);}catch(e){}
 new MutationObserver(rerender).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
 (async function init(){
-  const pr=loadPrefs();if([4,12,52].includes(pr.win))state.win=pr.win;
+  const pr=loadPrefs();if([4,12,52].includes(pr.win))state.win=pr.win;state.incOpen=!!pr.incOpen;
   renderPlates();
   // Datos del formato anterior (un archivo por línea): no se mezclan con el reporte nuevo.
   const old=await idbAll('lineas');
