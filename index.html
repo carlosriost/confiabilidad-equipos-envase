@@ -1506,6 +1506,7 @@ function aParse(text){
   if(/\bmicro ?parad|\bmicro ?paros?\b|\bmicroparos?\b/.test(q0)){sp.micro=true;sp.ex.micro=1;if(!sp.ex.cat)sp.cat='ic';}
   // intención
   const it=[
+    ['nofail',/\b(sin (?:ninguna )?fallas?|no (?:tienen|tuvieron|han tenido|presentan|presentaron|registran|registraron) fallas?|no (?:han )?fallado|no fallaron|no falla(?:n|ron)?|cero fallas|0 fallas|ninguna falla)\b/],
     ['proj',/\b(vuelve|vuelven|volver|volvera|volveran|vuelvan|regresa|regresan|regresar|retorna|retornan|retornar|retorno|recupera|recuperan|recuperar|recuperara|se recupera|cumplira|alcanza(?:ra)?|proyeccion|proyectar|proyecta|cuando (?:cumple|baja|sale|entra))\b/],
     ['status',/\b(alerta|alertas|critic[oa]s?|cumplen|cumple|cumpliendo|mejorando|fuera de (?:la )?meta|sobre (?:la )?meta|encima de (?:la )?meta|por debajo de (?:la )?meta|bajo (?:la )?meta|recertific\w*|ato|en meta|incumpl\w*|no cumplen?|estatus)\b/],
     ['kpi',/52 ?-? ?12 ?-? ?4|\b52w\b|\b12w\b|\b4w\b|\bindicador(?:es)?\b|\bconfiabilidad\b/],
@@ -1694,6 +1695,7 @@ function aAnswer(sp){
     return{html:`No entendí la pregunta. No reconozco <b>${esc(sp.tokens.join(' '))}</b> como equipo, línea, fecha ni texto de las paradas.`,help:true};
   let r;
   switch(sp.intent){
+    case 'nofail':r=aNoFail(sp,ctx);break;
     case 'proj':r=aProj(sp,ctx);break;
     case 'status':r=aStatus(sp,ctx);break;
     case 'kpi':r=aKpi(sp,ctx);break;
@@ -1735,6 +1737,11 @@ function aAgg(sp,ctx){
     if(den>0)html+=` Equivale al <b>${pct(tH/den)}</b> del tiempo de carga (EPT + causas internas).`;
     let table=null,chart=null;
     if(multi){const rows=ctx.lines.map(k=>[k,nf(byLine[k].n),hrs(byLine[k].h),byLine[k].n?nf(byLine[k].h*60/byLine[k].n,1):'–',byLine[k].den?pct(byLine[k].h/byLine[k].den):'–']);table={cols:['Línea','Eventos','Horas','Min/evento','% tiempo de carga'],rows,num:[1,2,3,4]};}
+    if(aEqLabel(ctx).length>1){const per=new Map();for(const k of ctx.lines){const M=models[k];const dn=byLine[k].den;for(const i of aRows(M,sp,ctx)){const nm=M.P.dict.eq[M.P.eq[i]];const key=k+'|'+nm;const o=per.get(key)||{k,nm,h:0,n:0,dn};o.h+=M.P.min[i]/60;o.n++;per.set(key,o);}
+        for(const id of ctx.eqBy[k]||[]){const nm=M.P.dict.eq[id];if(!per.has(k+'|'+nm))per.set(k+'|'+nm,{k,nm,h:0,n:0,dn});}}
+      const it=[...per.values()].sort((x,y)=>y.h-x.h);
+      html+=` Coincide con ${it.length} equipos; este es el detalle de cada uno (escribe el nombre más completo si buscabas solo uno).`;
+      table={cols:['Equipo','Línea','Eventos','Horas','Min/evento','% tiempo de carga'],rows:it.map(o=>[o.nm,o.k,nf(o.n),hrs(o.h),o.n?nf(o.h*60/o.n,1):'–',o.dn?pct(o.h/o.dn):'–']),num:[2,3,4,5]};}
     // serie semanal de contexto
     const wkm=new Map();for(const k of ctx.lines){const M=models[k];for(const i of aRows(M,sp,ctx)){const w=mondayOf(M.P.day[i]);const o=wkm.get(w)||{h:0,n:0};o.h+=M.P.min[i]/60;o.n++;wkm.set(w,o);}}
     const ws=[...wkm.keys()].sort((a,b)=>a-b);
@@ -1779,6 +1786,16 @@ function aActions(ctx,eqPick){
 }
 function aEndFor(M,sp){if(sp.weekCut!=null||(sp.period&&sp.ex.period&&!sp.weeksN)){const d=sp.weekCut??sp.period.b;let e=M.nW-1;while(e>0&&M.weeks[e]>d)e--;return e;}return M.nW-1;}
 function aEqObjs(ctx){const out=[];for(const k of ctx.lines){const M=models[k];for(const id of ctx.eqBy[k]||[]){const nm=M.P.dict.eq[id];const e=M.eqs.find(x=>x.name===nm);out.push({k,M,nm,e});}}return out;}
+function aNoFail(sp,ctx){
+  const chips=aChips({...sp,gb:null},ctx,'noCat');const{a,b}=ctx.period;const rows=[];let tot=0;
+  for(const k of ctx.lines){const M=models[k];
+    for(const e of M.eqs){tot++;let n=0,last=null;for(const i of e.rows){const d=M.P.day[i];if(d>=a&&d<=b)n++;if(last==null||d>last)last=d;}
+      if(!n)rows.push([e.name,k,e.tipo||'–',e.cod||'–',last!=null?dstr(last):'ninguna en los datos cargados',(e.src||[]).includes('reporte')?'reporte':'agregado a mano']);}}
+  rows.sort((x,y)=>x[1].localeCompare(y[1])||tipoRank(x[2])-tipoRank(y[2])||x[0].localeCompare(y[0]));
+  const html=rows.length?`<b>${rows.length}</b> de ${tot} equipos de ${esc(aLinesLabel(ctx))} no tuvieron ninguna falla en ${esc(ctx.period.label)}: ${rows.slice(0,6).map(r=>`<b>${esc(r[0])}</b>${ctx.lines.length>1?` (${r[1]})`:''}`).join(', ')}${rows.length>6?'…':''}. <span class="neutral">Solo cuento los equipos que aparecen en los reportes o que agregaste en «Equipos de la línea»; el reporte no nombra a los que nunca han fallado.</span>`
+    :`Todos los ${tot} equipos conocidos de ${esc(aLinesLabel(ctx))} tuvieron al menos una falla en ${esc(ctx.period.label)}. <span class="neutral">Los equipos que nunca han fallado no vienen en el reporte: agrégalos en «Equipos de la línea».</span>`;
+  return{html,table:rows.length?{cols:['Equipo','Línea','Tipo','Código SAP','Última falla','Origen'],rows,num:[]}:null,chips};
+}
 function aKpi(sp,ctx){
   const chips=aChips({...sp,gb:null},ctx,'noPeriod');const eqs=aEqObjs(ctx);
   if(eqs.length){
