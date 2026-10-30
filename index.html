@@ -270,6 +270,9 @@ footer{padding-block:18px 32px;border-top:1px solid var(--line);font-size:12.5px
       </div>
       <div class="tablebox scroll"><table id="eqTable"></table></div>
     </div>
+    <div class="panel"><h3>Mapa de confiabilidad <span class="hint">cada punto es un equipo · verde cumple, rojo crítico</span></h3>
+      <p class="sub">Eje horizontal: 52 semanas. Eje vertical: 12 semanas. Las líneas rojas punteadas son la meta de 0,5 %; la franja verde es donde se cumplen las dos. Bajo la diagonal, el equipo está mejorando (sus 12 semanas son mejores que su año). Pasa el cursor sobre un punto para ver el equipo y haz clic para abrirlo. Con menos de 12 semanas de datos, 52W y 12W son casi iguales y los puntos quedan sobre la diagonal.</p>
+      <div class="chart tall" id="chMap2"></div></div>
   </section>
 
   <!-- EQUIPOS DE LA LÍNEA -->
@@ -965,7 +968,7 @@ function base(){
 function axisCat(c,data,extra){return Object.assign({type:'category',data,axisLine:{lineStyle:{color:c.line}},axisTick:{show:false},axisLabel:{color:c.muted,hideOverlap:true}},extra||{});}
 function axisVal(c,extra){return Object.assign({type:'value',splitLine:{lineStyle:{color:c.grid}},axisLabel:{color:c.muted,formatter:v=>nf(v,Number.isInteger(v)?0:1)},axisLine:{show:false}},extra||{});}
 const pctFmt=v=>nf(v*100,v<0.01?2:1)+' %';
-function metaLine(c,label=true){return{silent:true,symbol:'none',lineStyle:{color:c.critical,type:'dashed',width:1.5},label:{show:label,formatter:'meta 0,5 %',color:c.critical,position:'insideEndTop',fontSize:11},data:[{yAxis:META}]};}
+function metaLine(c,label=true){return{silent:true,symbol:'none',precision:6,lineStyle:{color:c.critical,type:'dashed',width:1.5},label:{show:label,formatter:'meta 0,5 %',color:c.critical,position:'insideEndTop',fontSize:11},data:[{yAxis:META}]};}
 function spark(vals){
   if(!vals.length)return'';const w=110,h=28,mx=Math.max(META*1.6,...vals);
   const x=i=>vals.length===1?w/2:2+i*(w-4)/(vals.length-1),y=v=>h-2-(v/mx)*(h-4);
@@ -1009,10 +1012,10 @@ function renderResumen(){
     p=>{const r=top[p.dataIndex];if(r){state.eq=r.e.name;setView('equipo');}});
   renderMap(rows);
 }
-function renderMap(rows){
+function renderMap(rows,id='chMap'){
   const{c,o}=base();const groups=['ok','mej','ale','cri'];const col={ok:c.good,mej:c.warning,ale:c.serious,cri:c.critical};
   const mx=Math.max(META*3,...rows.map(r=>Math.max(r.p52,r.p12)))*1.08;
-  chart('chMap',{...o,grid:{left:8,right:24,top:56,bottom:28,containLabel:true},
+  chart(id,{...o,grid:{left:8,right:24,top:56,bottom:28,containLabel:true},
     legend:{...o.legend,left:'auto',right:0,data:groups.map(g=>STATUS[g].label)},
     tooltip:{...o.tooltip,trigger:'item',formatter:p=>{const r=p.data.r;return `<b>${esc(r.e.name)}</b><br>${esc(r.e.tipo)}<br>52W ${pct(r.p52)} · 12W ${pct(r.p12)} · 4W ${pct(r.p4)}<br>${hrs(r.h12)} perdidas en 12 sem`;}},
     xAxis:axisVal(c,{name:'52 semanas',nameLocation:'middle',nameGap:26,nameTextStyle:{color:c.muted},min:0,max:mx,axisLabel:{color:c.muted,formatter:pctFmt}}),
@@ -1021,7 +1024,7 @@ function renderMap(rows){
       emphasis:{scale:1.4,label:{show:true,formatter:p=>p.data.r.e.name,position:'top',color:c.ink,fontSize:12}},
       data:rows.filter(r=>r.st===g).map(r=>({value:[r.p52,r.p12],r}))})),
       {type:'line',silent:true,symbol:'none',lineStyle:{color:c.muted,type:'dotted',width:1},data:[[0,0],[mx,mx]],tooltip:{show:false},
-        markLine:{silent:true,symbol:'none',lineStyle:{color:c.critical,type:'dashed',width:1.2},label:{color:c.critical,fontSize:11},data:[{xAxis:META,label:{formatter:'52W = 0,5 %',position:'end'}},{yAxis:META,label:{formatter:'12W = 0,5 %',position:'insideEndTop'}}]},
+        markLine:{silent:true,symbol:'none',precision:6,lineStyle:{color:c.critical,type:'dashed',width:1.2},label:{color:c.critical,fontSize:11},data:[{xAxis:META,label:{formatter:'52W = 0,5 %',position:'end'}},{yAxis:META,label:{formatter:'12W = 0,5 %',position:'insideEndTop'}}]},
         markArea:{silent:true,itemStyle:{color:c.good,opacity:.07},data:[[{coord:[0,0]},{coord:[META,META]}]]}}]},
     p=>{if(p.data&&p.data.r){state.eq=p.data.r.e.name;setView('equipo');}});
 }
@@ -1073,6 +1076,7 @@ function renderEquipos(){
     <td class="n ${r.p52>META?'over':''}">${pct(r.p52)}</td><td class="n ${r.p12>META?'over':''}">${pct(r.p12)}</td><td class="n ${r.p4>META?'over':''}">${pct(r.p4)}</td>
     <td class="n">${hrs(r.h12)}</td><td class="n">${nf(r.n12)}</td><td class="n">${r.mttr==null?'–':nf(r.mttr,1)}</td><td>${spark(r.spark)}</td><td>${pill(r.st)}</td><td class="n">${retTxt(r)}</td></tr>`).join('')||'<tr><td colspan="10" class="neutral">Ningún equipo coincide con el filtro.</td></tr>'}</tbody>`;
   state._eqList=list;
+  renderMap(rows,'chMap2');
 }
 $('#eqTable').addEventListener('click',e=>{const th=e.target.closest('th.sortable');if(th){const k=th.dataset.k;state.sort=state.sort.k===k?{k,dir:-state.sort.dir}:{k,dir:k==='name'?1:-1};renderEquipos();return;}
   const tr=e.target.closest('tr[data-eq]');if(tr){state.eq=tr.dataset.eq;setView('equipo');}});
