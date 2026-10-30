@@ -141,7 +141,7 @@ th{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute
 th.sortable{cursor:pointer;user-select:none}
 th.sortable:hover{color:var(--ink)}
 th[aria-sort="descending"]::after{content:" ▾"} th[aria-sort="ascending"]::after{content:" ▴"}
-td.n,th.n{text-align:right}
+td.n,th.n{text-align:right;white-space:nowrap}
 tbody tr:hover{background:var(--surface-2)}
 tbody tr.click{cursor:pointer}
 td .eqn{font-weight:600;display:block;line-height:1.25}
@@ -226,6 +226,7 @@ footer{padding-block:18px 32px;border-top:1px solid var(--line);font-size:12.5px
       <button class="tab" role="tab" data-v="resumen">Resumen</button>
       <button class="tab" role="tab" data-v="preguntar">Preguntar</button>
       <button class="tab" role="tab" data-v="equipos">Equipos 52-12-4</button>
+      <button class="tab" role="tab" data-v="inventario">Equipos de la línea</button>
       <button class="tab" role="tab" data-v="equipo">Detalle de equipo</button>
       <button class="tab" role="tab" data-v="linea">Tiempos de línea</button>
       <button class="tab" role="tab" data-v="paradas">Paradas</button>
@@ -268,6 +269,32 @@ footer{padding-block:18px 32px;border-top:1px solid var(--line);font-size:12.5px
         <button class="btn ghost" id="eqCsv" type="button">Descargar CSV</button>
       </div>
       <div class="tablebox scroll"><table id="eqTable"></table></div>
+    </div>
+  </section>
+
+  <!-- EQUIPOS DE LA LÍNEA -->
+  <section class="view" id="v-inventario" hidden>
+    <div class="panel">
+      <h3>Todos los equipos de la línea <span class="hint" id="invHint"></span></h3>
+      <p class="sub">El reporte solo nombra un equipo cuando falla. Aquí está <b>cada equipo que haya aparecido en cualquier reporte cargado</b>, más los que agregues abajo (los que nunca han fallado no vienen en el reporte). Un equipo sin fallas en la ventana está en 0,00 % y cumple. Las cifras usan la semana de corte de arriba.</p>
+      <div class="tiles" id="invTiles" style="margin-top:8px"></div>
+      <div class="tools"><input type="search" id="invSearch" placeholder="Buscar equipo, tipo o código…" aria-label="Buscar equipo"><button class="btn ghost" id="invCsv" type="button">Descargar CSV</button></div>
+      <div class="tablebox"><table id="invTable"></table></div>
+    </div>
+    <div class="panel">
+      <h3>Agregar equipos que no aparecen <span class="hint">se guardan en este navegador y cuentan con 0 % hasta que fallen</span></h3>
+      <form id="invForm" class="tools" autocomplete="off">
+        <input id="invName" type="text" placeholder="Nombre del equipo (ej. ETIQUETADORA - L7)" style="flex:2;min-width:220px" aria-label="Nombre del equipo" required>
+        <input id="invCod" type="text" placeholder="Código SAP (opcional)" style="width:170px" aria-label="Código SAP">
+        <input id="invTipo" type="text" list="invTipos" placeholder="Tipo (ej. ETIQUETADORA)" style="width:220px" aria-label="Tipo de equipo">
+        <datalist id="invTipos"></datalist>
+        <button class="btn primary" type="submit">Agregar a la línea</button>
+      </form>
+      <details style="margin-top:12px"><summary style="cursor:pointer;font-weight:600">Pegar una lista desde Excel o SAP</summary>
+        <p class="sub" style="margin-top:8px">Copia en Excel las columnas <b>Equipo</b>, <b>Código SAP</b> y <b>Tipo</b> (en ese orden; código y tipo son opcionales) y pégalas aquí, una fila por equipo. Si el código o el nombre ya existe, no se duplica.</p>
+        <textarea id="invPaste" rows="6" style="width:100%;max-width:100%;font:inherit;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink)" placeholder="ETIQUETADORA - L7&#9;1001433&#9;ETIQUETADORA"></textarea>
+        <div class="tools"><button class="btn" id="invPasteBtn" type="button">Agregar lista a la línea</button><span class="note" id="invPasteMsg"></span></div>
+      </details>
     </div>
   </section>
 
@@ -503,8 +530,8 @@ function parserModule(isWorker){
   const num=v=>typeof v==='number'?v:(v==null||v===''?0:(parseFloat(String(v).replace(',','.'))||0));
   function makeDict(){const map=new Map(),list=[];return{list,id(v){const s=v==null?'':String(v).trim();let i=map.get(s);if(i===undefined){i=list.length;list.push(s);map.set(s,i);}return i;}};}
 
-  const PF={linea:'LINEA',planta:'PLANTA',hini2:'HORA INICIO',fecha:'FECHA',turno:'TURNO',llen:'LLENADORA',hini:'HORA INICIO LLENADORA',parada:'PARADA',tipo:'TIPO PARADA',sub:'SUBTIPO PARADA',l4:'SUBTIPO PARADA L4',prod:'NOMBRE PRODUCTO',teq:'TIPO EQUIPO',eq:'EQUIPO',sc:'SUB CONJUNTO',det:'DETALLE',min:'TIEMPO PARADA (MIN)',hrs:'TIEMPO PARADA (HRS)',minL:'TIEMPO PARADA LLENADORA (MIN)',causa:'CAUSA RAIZ',acc:'ACCIONES',clas:'CLASIFICACION DEL TIEMPO DE PARADA',api:'TIPO PARADA API'};
-  const PDICT=['linea','planta','turno','llen','parada','tipo','sub','l4','prod','teq','eq','sc','det','causa','acc','clas','api'];
+  const PF={linea:'LINEA',planta:'PLANTA',cod:'COD EQUIPO',hini2:'HORA INICIO',fecha:'FECHA',turno:'TURNO',llen:'LLENADORA',hini:'HORA INICIO LLENADORA',parada:'PARADA',tipo:'TIPO PARADA',sub:'SUBTIPO PARADA',l4:'SUBTIPO PARADA L4',prod:'NOMBRE PRODUCTO',teq:'TIPO EQUIPO',eq:'EQUIPO',sc:'SUB CONJUNTO',det:'DETALLE',min:'TIEMPO PARADA (MIN)',hrs:'TIEMPO PARADA (HRS)',minL:'TIEMPO PARADA LLENADORA (MIN)',causa:'CAUSA RAIZ',acc:'ACCIONES',clas:'CLASIFICACION DEL TIEMPO DE PARADA',api:'TIPO PARADA API'};
+  const PDICT=['linea','planta','cod','turno','llen','parada','tipo','sub','l4','prod','teq','eq','sc','det','causa','acc','clas','api'];
   const TF={linea:'LINEA',planta:'PLANTA',cierre:'FECHA CIERRE',fecha:'FECHA',turno:'TURNO',hl:'PRODUCCION HL',nchg:'# CHANGEOVERS',chg:'CHANGEOVERS TIME (HRS)',total:'TOTAL TIME (HRS)',ept:'EPT (HRS)',nst:'NST REAL (HRS)',dpa:'DPA REAL (HRS)',ec:'EXTERNAL CAUSES REAL (HRS)',ic:'INTERNAL CAUSES REAL (HRS)'};
 
   function headerMap(row,fields){const idx={};const want={};for(const k in fields)want[fields[k]]=k;
@@ -641,7 +668,13 @@ function buildModel(slot,raw){
     e.fail[w]+=P.min[i]/60;e.cnt[w]++;e.rows.push(i);
     const tp=P.dict.teq[P.teq[i]]||'Sin tipo';e.tipoCnt[tp]=(e.tipoCnt[tp]||0)+1;
   }
-  for(const e of eqs){e.tipo=Object.entries(e.tipoCnt).sort((a,b)=>b[1]-a[1])[0]?.[0]||'Sin tipo';e.pre=pre(e.fail);e.cpre=pre(e.cnt);}
+  for(const e of eqs){e.tipo=Object.entries(e.tipoCnt).sort((a,b)=>b[1]-a[1])[0]?.[0]||'Sin tipo';}
+  // Equipos conocidos sin fallas en los datos que quedan: entran con 0 horas (cumplen).
+  const byName=new Map(eqs.map(e=>[normS(e.name),e]));
+  for(const k of raw.known||[]){let e=byName.get(normS(k.name));
+    if(!e){e={id:eqs.length,code:k.id,name:k.name,tipoCnt:{},fail:new Float64Array(nW),cnt:new Int32Array(nW),rows:[],tipo:k.tipo||'Sin tipo'};eqs.push(e);byName.set(normS(k.name),e);}
+    e.cod=k.cod||'';e.src=[...k.src];if((!e.tipo||e.tipo==='Sin tipo')&&k.tipo)e.tipo=k.tipo;}
+  for(const e of eqs){e.pre=pre(e.fail);e.cpre=pre(e.cnt);}
   let firstDay=Infinity,lastDay=-Infinity;for(let i=0;i<T.n;i++){if(T.day[i]<firstDay)firstDay=T.day[i];if(T.day[i]>lastDay)lastDay=T.day[i];}
   for(let i=0;i<P.n;i++){if(P.day[i]>lastDay&&wIdx.has(mondayOf(P.day[i])))lastDay=P.day[i];}
   // Arreglos por día: las ventanas 4/12/52 se miden en días (28/84/364), así una semana incompleta no distorsiona.
@@ -657,6 +690,7 @@ function buildModel(slot,raw){
   for(let i=0;i<P.n;i++){const w=pWeek[i];if(w>=0&&P.day[i]>wEnd[w]&&P.day[i]<=lastDay)wEnd[w]=P.day[i];}
   const wDays=new Int16Array(nW);{const seen=new Set();for(let i=0;i<T.n;i++){const d=T.day[i];if(!seen.has(d)){seen.add(d);wDays[tWeek[i]]++;}}}
   const eqIds=new Set();for(let i=0;i<P.n;i++){if(P.dict.eq[P.eq[i]])eqIds.add(P.eq[i]);}
+  for(const e of eqs)if(e.code!=null&&P.dict.eq[e.code])eqIds.add(e.code);
   return {slot,P,T,weeks,nW,wIdx,W,den,denPre,eqs,icCode,nstCode,microCode,pWeek,tWeek,pre,firstDay,lastDay,wDays,eqIds,d0,nD,dDenPre,dHasPre,dTPre,dTTPre,wEnd};
 }
 /* Ventana en días: termina el último día con datos de la semana de corte y dura 7×N días. */
@@ -713,10 +747,15 @@ const state={incOpen:false,slot:null,cut:null,win:12,view:'cargar',eq:null,sort:
 const models={};let chunks=[];const loadInfo={active:false,file:'',step:'',prog:0,err:null,queue:0};
 let lineInfo={};
 const DB_NAME='confiabilidad-envase',STORE='reportes';
-function idb(){return new Promise((res,rej)=>{try{const r=indexedDB.open(DB_NAME,2);r.onupgradeneeded=()=>{const db=r.result;if(!db.objectStoreNames.contains('lineas'))db.createObjectStore('lineas');if(!db.objectStoreNames.contains(STORE))db.createObjectStore(STORE);};r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);}catch(e){rej(e);}});}
+function idb(){return new Promise((res,rej)=>{try{const r=indexedDB.open(DB_NAME,3);r.onupgradeneeded=()=>{const db=r.result;if(!db.objectStoreNames.contains('lineas'))db.createObjectStore('lineas');if(!db.objectStoreNames.contains('inventario'))db.createObjectStore('inventario');if(!db.objectStoreNames.contains(STORE))db.createObjectStore(STORE);};r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);}catch(e){rej(e);}});}
 async function idbPut(k,v){try{const db=await idb();await new Promise((res,rej)=>{const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).put(v,k);tx.oncomplete=res;tx.onerror=()=>rej(tx.error);});return true;}catch(e){console.warn('No se pudo guardar en el navegador',e);return false;}}
 async function idbDel(k,store=STORE){try{const db=await idb();await new Promise(res=>{const tx=db.transaction(store,'readwrite');k==null?tx.objectStore(store).clear():tx.objectStore(store).delete(k);tx.oncomplete=res;tx.onerror=res;});}catch(e){}}
 async function idbAll(store=STORE){try{const db=await idb();return await new Promise(res=>{const out={};const tx=db.transaction(store,'readonly');const st=tx.objectStore(store);const rq=st.openCursor();rq.onsuccess=()=>{const c=rq.result;if(c){out[c.key]=c.value;c.continue();}else res(out);};rq.onerror=()=>res(out);});}catch(e){return{};}}
+/* Inventario manual de equipos por línea (los que el reporte no nombra porque no han fallado). */
+let inventario={};
+async function invSave(){try{const db=await idb();await new Promise((res,rej)=>{const tx=db.transaction('inventario','readwrite');tx.objectStore('inventario').put(inventario,'inv');tx.oncomplete=res;tx.onerror=()=>rej(tx.error);});return true;}catch(e){console.warn(e);return false;}}
+async function invLoad(){try{const o=await idbAll('inventario');inventario=(o&&o.inv)||{};}catch(e){inventario={};}}
+const codNorm=c=>{const s=String(c==null?'':c).trim().replace(/\.0+$/,'');return /^\d+$/.test(s)?String(+s):s;};
 function savePrefs(){try{localStorage.setItem('ce-prefs',JSON.stringify({slot:state.slot,win:state.win,incOpen:state.incOpen}));}catch(e){}}
 function loadPrefs(){try{return JSON.parse(localStorage.getItem('ce-prefs')||'{}');}catch(e){return{};}}
 
@@ -757,6 +796,19 @@ function rebuild(){
     for(let i=0;i<c.T.n;i++){const k=c._tKey[i];const ce=c.T.cerr?c.T.cerr[i]:2;
       if(ce!==1&&Math.abs(c.T.total[i]-esperado[k])>0.05){c._tEx[i]=1;excl.add(c.id+'|'+k+'|'+c.T.day[i]+'|'+normS(c.T.dict.turno[c.T.turno[i]]));}}
   }
+  /* Todos los equipos conocidos de cada línea: los que aparecen en CUALQUIER fila de los reportes
+     (también en turnos excluidos) + el inventario manual. Un equipo sin fallas queda en 0,00 %. */
+  const known={};
+  const addKnown=(k,name,cod,tipo,src)=>{name=String(name||'').trim();if(!name)return;const L=known[k]||(known[k]=new Map());
+    const c=codNorm(cod);let hit=null;
+    if(c)for(const v of L.values())if(v.cod===c){hit=v;break;}
+    if(!hit)hit=L.get(normS(name));
+    if(hit){hit.src.add(src);if(!hit.cod&&c)hit.cod=c;if((!hit.tipo||hit.tipo==='Sin tipo')&&tipo)hit.tipo=tipo;if(src==='inventario')hit.manualName=name;return;}
+    L.set(normS(name),{name,cod:c,tipo:tipo||'',src:new Set([src])});};
+  for(const c of sorted){const ed=c.P.dict.eq||[],cd=c.P.dict.cod||[],td=c.P.dict.teq||[];
+    const seen=new Set();for(let i=0;i<c.P.n;i++){const id=c.P.eq[i];if(!ed[id])continue;const key=c._pKey[i]+'|'+id+'|'+(c.P.cod?c.P.cod[i]:'');if(seen.has(key))continue;seen.add(key);
+      addKnown(c._pKey[i],ed[id],c.P.cod?cd[c.P.cod[i]]:'',c.P.teq?td[c.P.teq[i]]:'','reporte');}}
+  for(const k in inventario)for(const it of inventario[k]||[])addKnown(k,it.name,it.cod,it.tipo,'inventario');
   const per={};const newPer=()=>{const P={day:[],hini:[],min:[],minL:[]};for(const f of PDF)P[f]=[];const T={day:[],turno:[]};for(const k of TK)T[k]=[];return{P,T,files:new Set()};};
   sorted.forEach((c,ci)=>{
     const newer=sorted.slice(ci+1);
@@ -775,6 +827,7 @@ function rebuild(){
       o.T.day.push(d);o.T.turno.push(tm[c.T.turno[i]]);for(const f of TK)o.T[f].push(c.T[f][i]);}
   });
   for(const f of [...PDF,'tturno'])gid(f,'');
+  for(const k in known)for(const v of known[k].values()){v.id=gid('eq',v.name);}
   for(const k in models)delete models[k];
   lineInfo={};
   for(const k in per){
@@ -784,7 +837,7 @@ function rebuild(){
     const T={n:o.T.day.length,day:Int32Array.from(o.T.day),turno:Int32Array.from(o.T.turno),dict:{turno:G.tturno.list}};
     for(const f of TK)T[f]=Float64Array.from(o.T[f]);
     lineInfo[k]={rowsP:P.n,rowsT:T.n,files:[...o.files],open:(exclInfo[k]||[]).sort((a,b)=>a.day-b.day||String(a.turno).localeCompare(String(b.turno)))};
-    if(T.n>0){try{models[k]=buildModel(k,{P,T});}catch(e){console.warn('Línea',k,e);lineInfo[k].err=e.message;}}
+    if(T.n>0){try{models[k]=buildModel(k,{P,T,known:known[k]?[...known[k].values()]:[]});}catch(e){console.warn('Línea',k,e);lineInfo[k].err=e.message;}}
     else lineInfo[k].err='Sin filas en BD TIEMPOS: no se puede calcular el 52-12-4.';
   }
   LINEAS=Object.keys(models).sort((a,b)=>lineSortKey(a)-lineSortKey(b));
@@ -885,7 +938,7 @@ function renderView(){
   if(v==='preguntar'){renderPreguntar();return;}
   if(v==='comparar'){renderComparar();return;}
   if(needData(v)) return;
-  ({resumen:renderResumen,equipos:renderEquipos,equipo:renderEquipo,linea:renderLinea,paradas:renderParadas})[v]();
+  ({resumen:renderResumen,inventario:renderInventario,equipos:renderEquipos,equipo:renderEquipo,linea:renderLinea,paradas:renderParadas})[v]();
 }
 
 /* =====================================================================
@@ -1032,6 +1085,70 @@ $('#eqCsv').addEventListener('click',()=>{
   for(const r of rows)lines.push([state.slot,r.e.name,r.e.tipo,f((r.p52*100).toFixed(3)),f((r.p12*100).toFixed(3)),f((r.p4*100).toFixed(3)),f(r.h12.toFixed(2)),r.n12,r.mttr==null?'':f(r.mttr.toFixed(1)),STATUS[r.st].label,r.ret==null?'No al ritmo actual':r.ret].map(x=>/[;"\n]/.test(String(x))?'"'+String(x).replace(/"/g,'""')+'"':x).join(';'));
   const blob=new Blob(['﻿'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`52-12-4_${state.slot}_${wk(M.weeks[state.cut]).replace('·','-')}.csv`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);
+});
+
+/* =====================================================================
+   10b) VISTA: TODOS LOS EQUIPOS DE LA LÍNEA
+   ===================================================================== */
+const ORDEN_TIPO=['DEPALETIZADORA','TRANSPORTADOR DE ESTIBAS','ALMACEN DE ESTIBAS','DESEMPACADORA','LAVADORA DE CAJAS','INSPECTOR DE CAJAS','ACUMULADOR DE CAJAS','TRANSPORTADOR DE CAJAS','LAVADORA DE BOTELLAS','INSPECTOR DE BOTELLA VACIA','SOPLADORA','LLENADORA','TRANSPORTADOR DE TAPAS','ALIMENTADOR DE TAPAS','PASTERIZADOR','INSPECTOR NIVEL','SECADOR','ETIQUETADORA','CODIFICADOR','SISTEMA COATING','TRANSPORTADOR DE BOTELLAS','EMPACADORA','ENVOLVEDORA','TRANSPORTADOR DE BANDEJAS','PALETIZADORA'];
+function tipoRank(t){const n=normS(t);const i=ORDEN_TIPO.findIndex(x=>n.includes(x));return i<0?999:i;}
+function invRows(M,end){
+  const N=state.win;const[a,b]=rng(M,end,N);
+  return M.eqs.map(e=>{const r=eqRow(M,e,end);let last=null,nN=0,hN=0;
+    for(const i of e.rows){const d=M.P.day[i];if(d<=b&&(last==null||d>last))last=d;if(d>=a&&d<=b){nN++;hN+=M.P.min[i]/60;}}
+    return{...r,last,nN,hN,src:e.src||['reporte'],cod:e.cod||''};})
+    .sort((x,y)=>tipoRank(x.e.tipo)-tipoRank(y.e.tipo)||String(x.e.tipo).localeCompare(String(y.e.tipo))||x.e.name.localeCompare(y.e.name));
+}
+function renderInventario(){
+  const M=curModel(),end=state.cut,N=state.win;const rows=invRows(M,end);
+  $('#invHint').textContent=`${state.slot} · ${rows.length} equipos · corte ${wk(M.weeks[end],true)}`;
+  const conF=rows.filter(r=>r.nN>0).length,over=rows.filter(r=>r.p12>META).length,man=rows.filter(r=>!r.src.includes('reporte')).length;
+  $('#invTiles').innerHTML=tile('Equipos de la línea',String(rows.length),man?`${man} agregado${man>1?'s':''} a mano`:'todos vistos en los reportes')+
+    tile(`Con fallas en ${N} sem`,String(conF),`${rows.length-conF} sin ninguna falla`)+tile('Sobre meta 12W',String(over),over?'necesitan atención':'todos bajo 0,5 %')+
+    tile('Cumplen ATO',String(rows.filter(r=>r.st==='ok').length),'52W y 12W bajo 0,5 %');
+  const q=normS($('#invSearch').value||'');
+  const list=rows.filter(r=>!q||normS(r.e.name+' '+r.e.tipo+' '+r.cod).includes(q));
+  let html=`<thead><tr><th>Equipo</th><th>Código SAP</th><th class="n">Fallas ${N} sem</th><th class="n">Horas ${N} sem</th><th class="n">52W</th><th class="n">12W</th><th class="n">4W</th><th>Estado</th><th>Última falla</th><th>Origen</th></tr></thead><tbody>`;
+  let tipo=null;
+  for(const r of list){
+    if(r.e.tipo!==tipo){tipo=r.e.tipo;const g=list.filter(x=>x.e.tipo===tipo);html+=`<tr><td colspan="10" style="background:var(--surface-2);font-family:var(--f-display);font-weight:600;font-size:14px;letter-spacing:.04em">${esc(tipo||'Sin tipo')} <span class="neutral" style="font-family:var(--f-body);font-weight:400">· ${g.length} equipo${g.length>1?'s':''}</span></td></tr>`;}
+    const manual=!r.src.includes('reporte');
+    html+=`<tr class="click" data-eq="${esc(r.e.name)}"><td><span class="eqn">${esc(r.e.name)}</span></td><td>${esc(r.cod)||'<span class="neutral">–</span>'}</td>
+      <td class="n">${r.nN?nf(r.nN):'<span class="neutral">0</span>'}</td><td class="n">${r.hN?hrs(r.hN):'<span class="neutral">0 h</span>'}</td>
+      <td class="n ${r.p52>META?'over':''}">${pct(r.p52)}</td><td class="n ${r.p12>META?'over':''}">${pct(r.p12)}</td><td class="n ${r.p4>META?'over':''}">${pct(r.p4)}</td>
+      <td>${pill(r.st)}</td><td style="white-space:nowrap">${r.last!=null?dstr(r.last):'<span class="neutral">sin fallas en los turnos contados</span>'}</td>
+      <td style="white-space:nowrap">${manual?'agregado a mano <button class="btn ghost" type="button" data-invdel="'+esc(r.e.name)+'" style="min-height:26px;padding:1px 8px;margin-left:4px">Quitar</button>':(r.src.includes('inventario')?'reporte + lista':'reporte')}</td></tr>`;
+  }
+  $('#invTable').innerHTML=html+(list.length?'':'<tr><td colspan="10" class="neutral">Ningún equipo coincide con la búsqueda.</td></tr>')+'</tbody>';
+  const tipos=[...new Set(LINEAS.flatMap(k=>models[k].eqs.map(e=>e.tipo)).filter(Boolean))].sort();
+  $('#invTipos').innerHTML=tipos.map(t=>`<option value="${esc(t)}">`).join('');
+}
+$('#invSearch').addEventListener('input',()=>renderInventario());
+$('#invTable').addEventListener('click',async e=>{
+  const del=e.target.closest('[data-invdel]');
+  if(del){e.stopPropagation();const nm=del.dataset.invdel;const L=state.slot;inventario[L]=(inventario[L]||[]).filter(x=>normS(x.name)!==normS(nm));await invSave();rebuild();afterDataChange();toast(`${nm} quitado de la ${L}`);return;}
+  const tr=e.target.closest('tr[data-eq]');if(tr){state.eq=tr.dataset.eq;setView('equipo');}
+});
+async function invAdd(items){
+  const L=state.slot;if(!L||!models[L])return 0;const M=models[L];const lst=inventario[L]||(inventario[L]=[]);let n=0;
+  for(const it of items){const name=String(it.name||'').trim();if(!name)continue;const cod=codNorm(it.cod);
+    const dup=M.eqs.some(e=>normS(e.name)===normS(name)||(cod&&e.cod===cod))||lst.some(x=>normS(x.name)===normS(name)||(cod&&codNorm(x.cod)===cod));
+    if(dup)continue;lst.push({name,cod,tipo:String(it.tipo||'').trim().toUpperCase()});n++;}
+  if(n){await invSave();rebuild();afterDataChange();}
+  return n;
+}
+$('#invForm').addEventListener('submit',async e=>{e.preventDefault();const n=await invAdd([{name:$('#invName').value,cod:$('#invCod').value,tipo:$('#invTipo').value}]);
+  toast(n?`Equipo agregado a la ${state.slot}`:'Ese equipo ya está en la línea');if(n){$('#invName').value='';$('#invCod').value='';}});
+$('#invPasteBtn').addEventListener('click',async()=>{
+  const lines=$('#invPaste').value.split(/\r?\n/).map(l=>l.split(/\t|;/).map(x=>x.trim())).filter(c=>c[0]&&!/^equipo$/i.test(c[0]));
+  const n=await invAdd(lines.map(c=>({name:c[0],cod:c[1],tipo:c[2]})));
+  $('#invPasteMsg').textContent=`${n} agregado${n===1?'':'s'}; ${lines.length-n} ya estaba${lines.length-n===1?'':'n'} o vacío${lines.length-n===1?'':'s'}.`;if(n)$('#invPaste').value='';
+});
+$('#invCsv').addEventListener('click',()=>{
+  const M=curModel();if(!M)return;const rows=invRows(M,state.cut);const f=v=>String(v).replace('.',',');
+  const out=[['Linea','Tipo','Equipo','Codigo SAP','Fallas ventana','Horas ventana','52W %','12W %','4W %','Estado','Ultima falla','Origen'].join(';')];
+  for(const r of rows)out.push([state.slot,r.e.tipo,r.e.name,r.cod,r.nN,f(r.hN.toFixed(2)),f((r.p52*100).toFixed(3)),f((r.p12*100).toFixed(3)),f((r.p4*100).toFixed(3)),STATUS[r.st].label,r.last!=null?new Date(r.last*864e5).toISOString().slice(0,10):'',r.src.includes('reporte')?'reporte':'agregado'].map(x=>/[;"\n]/.test(String(x))?'"'+String(x).replace(/"/g,'""')+'"':x).join(';'));
+  const blob=new Blob(['\ufeff'+out.join('\r\n')],{type:'text/csv;charset=utf-8'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`equipos_${state.slot}_${wk(M.weeks[state.cut]).replace('·','-')}.csv`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);
 });
 
 /* =====================================================================
@@ -1248,8 +1365,8 @@ function renderCargar(){
   $('#incOpen').checked=state.incOpen;
   renderLoadProg();
   const keys=Object.keys(lineInfo).sort((a,b)=>lineSortKey(a)-lineSortKey(b));
-  $('#linesTable').innerHTML=keys.length?`<thead><tr><th>Línea</th><th>Desde</th><th>Hasta</th><th class="n">Semanas</th><th class="n">Turnos</th><th class="n">Paradas</th><th class="n">Equipos con fallas</th><th>Turnos en curso ${state.incOpen?'(incluidos)':'(excluidos)'}</th><th></th></tr></thead><tbody>${keys.map(k=>{const M=models[k],li=lineInfo[k];
-    return M?`<tr><td><b style="font-family:var(--f-display);font-size:18px">${esc(k)}</b></td><td style="white-space:nowrap">${dstr(M.firstDay)}</td><td style="white-space:nowrap">${dstr(M.lastDay)}</td><td class="n">${M.nW}</td><td class="n">${nf(li.rowsT)}</td><td class="n">${nf(li.rowsP)}</td><td class="n">${M.eqs.length}</td><td style="font-size:13px">${openTxt(li.open)}</td><td><button class="btn ghost" type="button" data-see="${esc(k)}">Ver</button></td></tr>`
+  $('#linesTable').innerHTML=keys.length?`<thead><tr><th>Línea</th><th>Desde</th><th>Hasta</th><th class="n">Semanas</th><th class="n">Turnos</th><th class="n">Paradas</th><th class="n">Equipos con fallas / total</th><th>Turnos en curso ${state.incOpen?'(incluidos)':'(excluidos)'}</th><th></th></tr></thead><tbody>${keys.map(k=>{const M=models[k],li=lineInfo[k];
+    return M?`<tr><td><b style="font-family:var(--f-display);font-size:18px">${esc(k)}</b></td><td style="white-space:nowrap">${dstr(M.firstDay)}</td><td style="white-space:nowrap">${dstr(M.lastDay)}</td><td class="n">${M.nW}</td><td class="n">${nf(li.rowsT)}</td><td class="n">${nf(li.rowsP)}</td><td class="n">${M.eqs.filter(e=>e.rows.length).length} de ${M.eqs.length}</td><td style="font-size:13px">${openTxt(li.open)}</td><td><button class="btn ghost" type="button" data-see="${esc(k)}">Ver</button></td></tr>`
       :`<tr><td><b>${esc(k)}</b></td><td colspan="8" class="err">${esc(li.err||'Sin datos suficientes')}</td></tr>`;}).join('')}</tbody>`:'<tbody><tr><td class="neutral">Todavía no hay líneas. Sube un reporte para empezar.</td></tr></tbody>';
   const cs=[...chunks].sort((a,b)=>b.loadedAt-a.loadedAt);
   $('#repTable').innerHTML=cs.length?`<thead><tr><th>Archivo</th><th>Fechas</th><th>Líneas</th><th class="n">Filas</th><th>Cargado</th><th></th></tr></thead><tbody>${cs.map(c=>`<tr><td style="max-width:260px;word-break:break-all">${esc(c.file)}</td><td style="white-space:nowrap">${dstr(c.minDay)} – ${dstr(c.maxDay)}</td><td>${esc((c.lines||[]).join(', '))}</td><td class="n">${nf(c.rowsP)} + ${nf(c.rowsT)}</td><td style="white-space:nowrap">${new Date(c.loadedAt).toLocaleString('es-CO',{dateStyle:'medium',timeStyle:'short'})}</td><td><button class="btn ghost" type="button" data-del="${c.id}">Quitar</button></td></tr>`).join('')}</tbody>`:'<tbody><tr><td class="neutral">Ningún reporte cargado.</td></tr></tbody>';
@@ -1884,12 +2001,13 @@ new MutationObserver(rerender).observe(document.documentElement,{attributes:true
   // Datos del formato anterior (un archivo por línea): no se mezclan con el reporte nuevo.
   const old=await idbAll('lineas');
   if(Object.keys(old).length){await idbDel(null,'lineas');setTimeout(()=>toast('El formato del Excel cambió: sube el reporte BD nuevo. Los datos anteriores se borraron.'),600);}
+  await invLoad();
   const saved=await idbAll();
   chunks=Object.values(saved).filter(c=>c&&c.P&&c.T);
   if(chunks.length){try{rebuild();}catch(e){console.error(e);}}
   state.slot=(pr.slot&&models[pr.slot])?pr.slot:(LINEAS[0]||null);
   fillCut();renderPlates();renderCargar();
-  const h=(location.hash||'').slice(1);const valid=['resumen','preguntar','equipos','equipo','linea','paradas','comparar','cargar'];
+  const h=(location.hash||'').slice(1);const valid=['resumen','preguntar','inventario','equipos','equipo','linea','paradas','comparar','cargar'];
   setView(valid.includes(h)?h:(state.slot?'resumen':'cargar'));
   if(typeof echarts==='undefined') toast('No se pudo cargar la librería de gráficos.');
 })();

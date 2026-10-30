@@ -21,6 +21,7 @@ en las últimas 52, 12 y 4 semanas hasta la semana de corte. Es el mismo cálcul
 
 - **Resumen**: indicadores clave, hallazgos automáticos, ranking de equipos y mapa 52W contra 12W.
 - **Preguntar**: asistente propio para hacer preguntas en español (ver abajo).
+- **Equipos de la línea**: todas las máquinas de cada línea agrupadas por tipo, con código SAP, fallas, 52-12-4, estado y última falla. El reporte solo nombra un equipo cuando falla; los que nunca han fallado se agregan a mano o pegando una lista desde Excel/SAP (se guardan en el navegador) y cuentan con 0 %.
 - **Equipos 52-12-4**: tabla con estado ATO (Cumple, Mejorando, Alerta, Crítico), tendencia y semana de retorno a la meta. Exporta CSV.
 - **Detalle de equipo**: tendencia, horas por semana, proyección de retorno a la meta, subconjuntos, causas raíz, microparadas y bitácora.
 - **Tiempos de línea**: LEF, OEE, GLY, OAE, distribución de las 168 h, producción, LEF por turno y cambios de formato.
